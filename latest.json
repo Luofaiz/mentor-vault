@@ -1,6 +1,6 @@
 {
-  "version": "0.1.1",
-  "notes": "Adds a built-in default update source so update checks work even if the packaged update URL is missing.",
+  "version": "0.1.2",
+  "notes": "Switches update checks to a faster jsDelivr manifest URL and increases timeout to reduce network abort errors.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
