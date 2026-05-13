@@ -1,6 +1,6 @@
 {
-  "version": "0.1.7",
-  "notes": "Adds built-in 未读, 待面试, and 待考核 statuses, and normalizes 不读/未读？ to 未读.",
+  "version": "0.1.8",
+  "notes": "Keeps the left navigation fixed in width and height while the main content scrolls independently.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
