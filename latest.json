@@ -1,6 +1,6 @@
 {
-  "version": "0.1.4",
-  "notes": "Adds clearer Chinese update failure messages for timeout, network, missing manifest, and server errors.",
+  "version": "0.1.5",
+  "notes": "Fixes update download links so GitHub API fallback opens the portable ZIP instead of the API JSON page.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
