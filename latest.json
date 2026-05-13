@@ -1,6 +1,6 @@
 {
-  "version": "0.1.2",
-  "notes": "Switches update checks to a faster jsDelivr manifest URL and increases timeout to reduce network abort errors.",
+  "version": "0.1.3",
+  "notes": "Improves update checks with a faster manifest CDN, fallback URLs, and longer timeout handling.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
