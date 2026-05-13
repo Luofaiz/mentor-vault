@@ -1,6 +1,6 @@
 {
-  "version": "0.1.3",
-  "notes": "Improves update checks with a faster manifest CDN, fallback URLs, and longer timeout handling.",
+  "version": "0.1.4",
+  "notes": "Adds clearer Chinese update failure messages for timeout, network, missing manifest, and server errors.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
