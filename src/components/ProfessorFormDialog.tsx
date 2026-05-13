@@ -6,6 +6,7 @@ import { PROFESSOR_STATUSES, type Professor, type ProfessorDraft, type Professor
 interface ProfessorFormDialogProps {
   open: boolean;
   professor: Professor | null;
+  defaultSchool?: string;
   onClose: () => void;
   onSubmit: (draft: ProfessorDraft, professorId?: string) => Promise<void>;
 }
@@ -26,7 +27,7 @@ const EMPTY_DRAFT: ProfessorDraft = {
 };
 const CUSTOM_STATUS_VALUE = '__custom__';
 
-export function ProfessorFormDialog({ open, professor, onClose, onSubmit }: ProfessorFormDialogProps) {
+export function ProfessorFormDialog({ open, professor, defaultSchool = '', onClose, onSubmit }: ProfessorFormDialogProps) {
   const { getStatusLabel, t } = useI18n();
   const [draft, setDraft] = useState<ProfessorDraft>(EMPTY_DRAFT);
   const [tagInput, setTagInput] = useState('');
@@ -56,11 +57,14 @@ export function ProfessorFormDialog({ open, professor, onClose, onSubmit }: Prof
       setTagInput(professor.tags.join(', '));
       setCustomStatus(PROFESSOR_STATUSES.includes(professor.status as never) ? '' : professor.status);
     } else {
-      setDraft(EMPTY_DRAFT);
+      setDraft({
+        ...EMPTY_DRAFT,
+        school: defaultSchool,
+      });
       setTagInput('');
       setCustomStatus('');
     }
-  }, [open, professor]);
+  }, [open, professor, defaultSchool]);
 
   if (!open) {
     return null;

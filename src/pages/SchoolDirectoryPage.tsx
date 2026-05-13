@@ -71,6 +71,7 @@ export function SchoolDirectoryPage({
   const timeline = useTimeline(detailProfessor?.id ?? null);
 
   const selectedGroup = schoolGroups.find((group) => group.school === selectedSchool) ?? schoolGroups[0] ?? null;
+  const defaultSchoolForCreate = selectedGroup?.school === t('schoolNotSet') ? '' : (selectedGroup?.school ?? '');
   const normalizedSearch = search.trim().toLowerCase();
   const visibleProfessors = (selectedGroup?.professors ?? [])
     .filter((professor) => (statusFilter === 'all' ? true : professor.status === statusFilter))
@@ -268,6 +269,7 @@ export function SchoolDirectoryPage({
       <ProfessorFormDialog
         open={dialogOpen}
         professor={editingProfessor}
+        defaultSchool={defaultSchoolForCreate}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleSubmit}
       />

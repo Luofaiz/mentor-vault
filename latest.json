@@ -1,6 +1,6 @@
 {
-  "version": "0.2.5",
-  "notes": "更新下载过程新增暂停、继续和取消功能，取消后会停止下载并清理临时安装包。",
+  "version": "0.2.6",
+  "notes": "按学校界面新增老师时会默认填入当前选中的学校，学校字段仍可手动修改。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
