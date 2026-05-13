@@ -33,6 +33,9 @@ export interface VibeDesktopApi {
     }>;
     openExternalUrl: (url: string) => Promise<void>;
     installUpdate: (downloadUrl: string) => Promise<{ ok: true }>;
+    pauseUpdateDownload?: () => Promise<{ ok: boolean }>;
+    resumeUpdateDownload?: () => Promise<{ ok: boolean }>;
+    cancelUpdateDownload?: () => Promise<{ ok: boolean }>;
     onUpdateDownloadProgress?: (callback: (progress: UpdateDownloadProgress) => void) => () => void;
   };
   professors: {
@@ -82,6 +85,7 @@ export interface VibeDesktopApi {
 }
 
 export interface UpdateDownloadProgress {
+  status: 'downloading' | 'paused' | 'completed';
   transferredBytes: number;
   totalBytes?: number;
   bytesPerSecond: number;

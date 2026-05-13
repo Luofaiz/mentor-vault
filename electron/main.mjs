@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import crypto from 'node:crypto';
@@ -26,6 +26,7 @@ const UPDATE_CHECK_TIMEOUT_MS = 30000;
 const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const UPDATE_INSTALLER_FILE_NAME = 'MentorVaultSetup.exe';
 const UPDATE_DOWNLOAD_PROGRESS_CHANNEL = 'system:update-download-progress';
+let currentUpdateDownloadTask = null;
 
 const DEFAULT_PROFESSORS = [];
 
@@ -266,10 +267,77 @@ function sendUpdateDownloadProgress(webContents, progress) {
   webContents.send(UPDATE_DOWNLOAD_PROGRESS_CHANNEL, progress);
 }
 
-function createUpdateDownloadProgressStream(totalBytes, notifyProgress) {
+function createUpdateDownloadTask(controller, installerPath) {
+  return {
+    controller,
+    installerPath,
+    isPaused: false,
+    isCanceled: false,
+    resumeWaiters: [],
+    transferredBytes: 0,
+    totalBytes: undefined,
+  };
+}
+
+function waitForUpdateDownloadResume(task) {
+  if (!task.isPaused) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    task.resumeWaiters.push(resolve);
+  });
+}
+
+function resumeUpdateDownloadTask(task) {
+  task.isPaused = false;
+  const waiters = task.resumeWaiters.splice(0);
+  waiters.forEach((resolve) => resolve());
+}
+
+function pauseCurrentUpdateDownload() {
+  if (!currentUpdateDownloadTask || currentUpdateDownloadTask.isCanceled) {
+    return { ok: false };
+  }
+
+  currentUpdateDownloadTask.isPaused = true;
+  return { ok: true };
+}
+
+function resumeCurrentUpdateDownload() {
+  if (!currentUpdateDownloadTask || currentUpdateDownloadTask.isCanceled) {
+    return { ok: false };
+  }
+
+  resumeUpdateDownloadTask(currentUpdateDownloadTask);
+  return { ok: true };
+}
+
+function cancelCurrentUpdateDownload() {
+  if (!currentUpdateDownloadTask) {
+    return { ok: false };
+  }
+
+  currentUpdateDownloadTask.isCanceled = true;
+  resumeUpdateDownloadTask(currentUpdateDownloadTask);
+  currentUpdateDownloadTask.controller.abort();
+  return { ok: true };
+}
+
+async function removeFileIfExists(filePath) {
+  try {
+    await unlink(filePath);
+  } catch {
+  }
+}
+
+function createUpdateDownloadProgressStream(totalBytes, notifyProgress, task) {
   let transferredBytes = 0;
   let lastSentAt = 0;
-  const startedAt = Date.now();
+  let activeStartedAt = Date.now();
+  let pausedStartedAt = null;
+  let totalPausedMs = 0;
+  task.totalBytes = totalBytes;
 
   const emitProgress = (force = false) => {
     const now = Date.now();
@@ -277,12 +345,13 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress) {
       return;
     }
 
-    const elapsedSeconds = Math.max((now - startedAt) / 1000, 0.001);
+    const elapsedSeconds = Math.max((now - activeStartedAt - totalPausedMs) / 1000, 0.001);
     const bytesPerSecond = transferredBytes / elapsedSeconds;
     const remainingBytes = totalBytes ? Math.max(totalBytes - transferredBytes, 0) : undefined;
 
     lastSentAt = now;
     notifyProgress({
+      status: task.isPaused ? 'paused' : 'downloading',
       transferredBytes,
       totalBytes,
       bytesPerSecond,
@@ -292,6 +361,7 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress) {
   };
 
   notifyProgress({
+    status: 'downloading',
     transferredBytes: 0,
     totalBytes,
     bytesPerSecond: 0,
@@ -300,10 +370,42 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress) {
   });
 
   return new Transform({
-    transform(chunk, _encoding, callback) {
-      transferredBytes += chunk.length;
-      emitProgress(transferredBytes === totalBytes);
-      callback(null, chunk);
+    async transform(chunk, _encoding, callback) {
+      try {
+        if (task.isCanceled) {
+          callback(new Error('Update download canceled.'));
+          return;
+        }
+
+        if (task.isPaused) {
+          pausedStartedAt = Date.now();
+          notifyProgress({
+            status: 'paused',
+            transferredBytes,
+            totalBytes,
+            bytesPerSecond: 0,
+            remainingSeconds: undefined,
+            percent: totalBytes ? Math.min(100, Math.round((transferredBytes / totalBytes) * 100)) : undefined,
+          });
+          await waitForUpdateDownloadResume(task);
+          if (pausedStartedAt !== null) {
+            totalPausedMs += Date.now() - pausedStartedAt;
+            pausedStartedAt = null;
+          }
+        }
+
+        if (task.isCanceled) {
+          callback(new Error('Update download canceled.'));
+          return;
+        }
+
+        transferredBytes += chunk.length;
+        task.transferredBytes = transferredBytes;
+        emitProgress(transferredBytes === totalBytes);
+        callback(null, chunk);
+      } catch (error) {
+        callback(error);
+      }
     },
     flush(callback) {
       emitProgress(true);
@@ -321,6 +423,12 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), UPDATE_DOWNLOAD_TIMEOUT_MS);
   const installerPath = path.join(app.getPath('temp'), `MentorVaultSetup-${Date.now()}.exe`);
+  if (currentUpdateDownloadTask) {
+    throw new Error('已有更新安装包正在下载。');
+  }
+
+  const task = createUpdateDownloadTask(controller, installerPath);
+  currentUpdateDownloadTask = task;
 
   try {
     const response = await fetch(parsed.toString(), {
@@ -341,12 +449,13 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
     if (response.body) {
       await pipeline(
         Readable.fromWeb(response.body),
-        createUpdateDownloadProgressStream(totalBytes, notifyProgress),
+        createUpdateDownloadProgressStream(totalBytes, notifyProgress, task),
         createWriteStream(installerPath),
       );
     } else {
       const buffer = Buffer.from(await response.arrayBuffer());
       notifyProgress({
+        status: 'downloading',
         transferredBytes: 0,
         totalBytes: buffer.length,
         bytesPerSecond: 0,
@@ -354,7 +463,10 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
         percent: 0,
       });
       await writeFile(installerPath, buffer);
+      task.transferredBytes = buffer.length;
+      task.totalBytes = buffer.length;
       notifyProgress({
+        status: 'completed',
         transferredBytes: buffer.length,
         totalBytes: buffer.length,
         bytesPerSecond: 0,
@@ -363,8 +475,21 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
       });
     }
 
+    notifyProgress({
+      status: 'completed',
+      transferredBytes: task.transferredBytes || totalBytes || 0,
+      totalBytes,
+      bytesPerSecond: 0,
+      remainingSeconds: 0,
+      percent: 100,
+    });
     return installerPath;
   } catch (error) {
+    if (task.isCanceled) {
+      await removeFileIfExists(installerPath);
+      throw new Error('更新下载已取消。');
+    }
+
     if (error?.name === 'AbortError') {
       throw new Error('下载安装包超时，请稍后重试，或直接打开 GitHub Release 下载新版安装包。');
     }
@@ -372,6 +497,9 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
     throw error;
   } finally {
     clearTimeout(timeout);
+    if (currentUpdateDownloadTask === task) {
+      currentUpdateDownloadTask = null;
+    }
   }
 }
 
@@ -1216,6 +1344,12 @@ ipcMain.handle('system:open-external-url', async (_event, url) => {
 });
 
 ipcMain.handle('system:install-update', async (event, downloadUrl) => installUpdate(downloadUrl, event.sender));
+
+ipcMain.handle('system:pause-update-download', async () => pauseCurrentUpdateDownload());
+
+ipcMain.handle('system:resume-update-download', async () => resumeCurrentUpdateDownload());
+
+ipcMain.handle('system:cancel-update-download', async () => cancelCurrentUpdateDownload());
 
 ipcMain.handle('professors:list', async (_event, filters) => {
   const store = await ensureStore();

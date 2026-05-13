@@ -1,9 +1,12 @@
 import {
   BookOpenCheck,
   Building2,
+  Pause,
+  Play,
   RefreshCw,
   Trash2,
   Users,
+  X,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { cn } from '../lib/utils';
@@ -23,6 +26,9 @@ interface AppSidebarProps {
   updateDownloadProgress: UpdateDownloadProgress | null;
   isCheckingUpdates: boolean;
   onCheckUpdates: () => void;
+  onPauseUpdateDownload: () => void;
+  onResumeUpdateDownload: () => void;
+  onCancelUpdateDownload: () => void;
 }
 
 export function AppSidebar({
@@ -32,10 +38,14 @@ export function AppSidebar({
   updateDownloadProgress,
   isCheckingUpdates,
   onCheckUpdates,
+  onPauseUpdateDownload,
+  onResumeUpdateDownload,
+  onCancelUpdateDownload,
 }: AppSidebarProps) {
   const { t } = useI18n();
+  const isUpdateDownloadPaused = updateDownloadProgress?.status === 'paused';
   const progressPercent = updateDownloadProgress?.percent ?? null;
-  const progressLabel = progressPercent === null ? '正在下载' : `${progressPercent}%`;
+  const progressLabel = isUpdateDownloadPaused ? '已暂停' : progressPercent === null ? '正在下载' : `${progressPercent}%`;
   const progressWidth = progressPercent === null ? 100 : Math.max(0, Math.min(100, progressPercent));
 
   return (
@@ -114,6 +124,26 @@ export function AppSidebar({
                   <span>{formatBytes(updateDownloadProgress.bytesPerSecond)}/s</span>
                   <span>剩余 {formatDuration(updateDownloadProgress.remainingSeconds)}</span>
                 </div>
+                {updateDownloadProgress.status !== 'completed' && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={isUpdateDownloadPaused ? onResumeUpdateDownload : onPauseUpdateDownload}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-600 transition-colors hover:bg-stone-100"
+                    >
+                      {isUpdateDownloadPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                      <span>{isUpdateDownloadPaused ? '继续' : '暂停'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancelUpdateDownload}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-[11px] font-medium text-rose-700 transition-colors hover:bg-rose-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span>取消</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

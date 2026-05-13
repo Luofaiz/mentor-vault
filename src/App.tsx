@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppSidebar } from './components/AppSidebar';
 import { useProfessorDirectory } from './hooks/useProfessorDirectory';
 import { getDesktopApi, type UpdateDownloadProgress } from './lib/desktop';
@@ -57,6 +57,7 @@ export default function App() {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState<UpdateDownloadProgress | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const isCancelingUpdateDownloadRef = useRef(false);
   const professorDirectory = useProfessorDirectory();
 
   const checkForUpdates = async (manual = true) => {
@@ -69,6 +70,7 @@ export default function App() {
     }
 
     setIsCheckingUpdates(true);
+    isCancelingUpdateDownloadRef.current = false;
     setUpdateDownloadProgress(null);
     try {
       const result = await desktopApi.system.checkForUpdates();
@@ -101,6 +103,10 @@ export default function App() {
       }
     } catch (error) {
       setUpdateDownloadProgress(null);
+      if (isCancelingUpdateDownloadRef.current) {
+        setUpdateMessage('已取消更新下载。');
+        return;
+      }
       if (manual) {
         setUpdateMessage(formatUpdateErrorMessage(error));
       }
@@ -119,6 +125,43 @@ export default function App() {
       setUpdateDownloadProgress(progress);
     });
   }, []);
+
+  const pauseUpdateDownload = () => {
+    const desktopApi = getDesktopApi();
+    setUpdateDownloadProgress((current) =>
+      current
+        ? {
+            ...current,
+            status: 'paused',
+            bytesPerSecond: 0,
+            remainingSeconds: undefined,
+          }
+        : current,
+    );
+    void desktopApi?.system.pauseUpdateDownload?.();
+  };
+
+  const resumeUpdateDownload = () => {
+    const desktopApi = getDesktopApi();
+    setUpdateDownloadProgress((current) =>
+      current
+        ? {
+            ...current,
+            status: 'downloading',
+          }
+        : current,
+    );
+    void desktopApi?.system.resumeUpdateDownload?.();
+  };
+
+  const cancelUpdateDownload = () => {
+    const desktopApi = getDesktopApi();
+    isCancelingUpdateDownloadRef.current = true;
+    setUpdateDownloadProgress(null);
+    setUpdateMessage('已取消更新下载。');
+    setIsCheckingUpdates(false);
+    void desktopApi?.system.cancelUpdateDownload?.();
+  };
 
   const handleCreateProfessor = async (draft: ProfessorDraft) => {
     await professorDirectory.create(draft);
@@ -182,6 +225,9 @@ export default function App() {
         updateDownloadProgress={updateDownloadProgress}
         isCheckingUpdates={isCheckingUpdates}
         onCheckUpdates={() => void checkForUpdates(true)}
+        onPauseUpdateDownload={pauseUpdateDownload}
+        onResumeUpdateDownload={resumeUpdateDownload}
+        onCancelUpdateDownload={cancelUpdateDownload}
       />
 
       <main className="min-w-0 flex-1 flex flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(177,95,47,0.08),_transparent_28%),linear-gradient(180deg,#fcfbf8_0%,#f7f4ef_100%)]">

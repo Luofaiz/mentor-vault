@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('vibe', {
     checkForUpdates: () => ipcRenderer.invoke('system:check-for-updates'),
     openExternalUrl: (url) => ipcRenderer.invoke('system:open-external-url', url),
     installUpdate: (downloadUrl) => ipcRenderer.invoke('system:install-update', downloadUrl),
+    pauseUpdateDownload: () => ipcRenderer.invoke('system:pause-update-download'),
+    resumeUpdateDownload: () => ipcRenderer.invoke('system:resume-update-download'),
+    cancelUpdateDownload: () => ipcRenderer.invoke('system:cancel-update-download'),
     onUpdateDownloadProgress: (callback) => {
       const listener = (_event, progress) => callback(progress);
       ipcRenderer.on('system:update-download-progress', listener);
