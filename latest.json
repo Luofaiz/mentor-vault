@@ -1,6 +1,6 @@
 {
-  "version": "0.2.0",
-  "notes": "Switches releases to a Windows installer and supports downloading and launching the installer from inside the app.",
+  "version": "0.2.1",
+  "notes": "Sets the installer default directory to D:\\Mentor Vault and keeps custom install paths under a Mentor Vault folder.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
