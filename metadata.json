@@ -1,0 +1,5 @@
+{
+  "name": "Mentor Vault",
+  "description": "A local desktop app for storing mentor and professor contact records.",
+  "requestFramePermissions": []
+}
