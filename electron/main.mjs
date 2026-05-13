@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { Readable, Transform } from 'node:stream';
@@ -16,11 +15,12 @@ const DESKTOP_DATA_DIRNAME = 'Mentor Vault';
 const LEGACY_DATA_DIRNAMES = ['Professor Tracker', 'Vibe Sender', 'vibe-sender'];
 const UPDATE_MANIFEST_ENV_KEYS = ['PROFESSOR_TRACKER_UPDATE_URL', 'UPDATE_MANIFEST_URL'];
 const DEFAULT_UPDATE_MANIFEST_URL =
-  'https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json';
+  'https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json';
 const DEFAULT_UPDATE_MANIFEST_FALLBACK_URLS = [
-  'https://api.github.com/repos/Luofaiz/mentor-vault-releases/releases/latest',
   'https://raw.githubusercontent.com/Luofaiz/mentor-vault-releases/main/latest.json',
-  'https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json',
+  'https://api.github.com/repos/Luofaiz/mentor-vault-releases/releases/latest',
+  'https://cdn.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json',
+  'https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json',
 ];
 const UPDATE_CHECK_TIMEOUT_MS = 30000;
 const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
@@ -253,10 +253,6 @@ async function openExternalUrl(url) {
   }
 
   await shell.openExternal(parsed.toString());
-}
-
-function quoteWindowsCommandArg(value) {
-  return `"${String(value).replace(/"/g, '""')}"`;
 }
 
 function sendUpdateDownloadProgress(webContents, progress) {
@@ -509,15 +505,14 @@ async function installUpdate(downloadUrl, webContents) {
   }
 
   const installerPath = await downloadUpdateInstaller(downloadUrl, webContents);
-  const command = `timeout /t 2 /nobreak > nul & start "" ${quoteWindowsCommandArg(installerPath)}`;
-  const child = spawn(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', command], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
-  });
-  child.unref();
+  const openError = await shell.openPath(installerPath);
+  if (openError) {
+    throw new Error(`启动安装程序失败：${openError}`);
+  }
 
-  app.quit();
+  setTimeout(() => {
+    app.quit();
+  }, 1500);
   return { ok: true };
 }
 

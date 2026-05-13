@@ -1,6 +1,6 @@
 {
-  "version": "0.2.6",
-  "notes": "按学校界面新增老师时会默认填入当前选中的学校，学校字段仍可手动修改。",
+  "version": "0.2.7",
+  "notes": "修复更新下载完成后只弹出 cmd 而不启动安装程序的问题，并将更新配置改为优先使用 GitHub Release 资产。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }

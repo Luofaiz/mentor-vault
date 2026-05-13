@@ -4,10 +4,10 @@
   "description": "Local teacher and mentor records database.",
   "author": "Luofaiz",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.2.7",
   "type": "module",
   "main": "electron/main.mjs",
-  "updateManifestUrl": "https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json",
+  "updateManifestUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:web": "vite --port=3000 --host=0.0.0.0",
@@ -65,7 +65,7 @@
     ],
     "asar": true,
     "extraMetadata": {
-      "updateManifestUrl": "https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json"
+      "updateManifestUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json"
     },
     "win": {
       "icon": "build/icon.ico",
