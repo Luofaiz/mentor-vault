@@ -1,6 +1,6 @@
 {
-  "version": "0.1.5",
-  "notes": "Fixes update download links so GitHub API fallback opens the portable ZIP instead of the API JSON page.",
+  "version": "0.1.6",
+  "notes": "Allows creating and editing teacher records without requiring an email address.",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
