@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppSidebar } from './components/AppSidebar';
 import { useProfessorDirectory } from './hooks/useProfessorDirectory';
-import { getDesktopApi } from './lib/desktop';
+import { getDesktopApi, type UpdateDownloadProgress } from './lib/desktop';
 import { createTimelineEvent } from './lib/timeline';
 import { ProfessorDirectoryPage } from './pages/ProfessorDirectoryPage';
 import { SchoolDirectoryPage } from './pages/SchoolDirectoryPage';
@@ -55,6 +55,7 @@ function formatUpdateErrorMessage(error: unknown) {
 export default function App() {
   const [view, setView] = useState<View>('contacts');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [updateDownloadProgress, setUpdateDownloadProgress] = useState<UpdateDownloadProgress | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const professorDirectory = useProfessorDirectory();
 
@@ -68,6 +69,7 @@ export default function App() {
     }
 
     setIsCheckingUpdates(true);
+    setUpdateDownloadProgress(null);
     try {
       const result = await desktopApi.system.checkForUpdates();
 
@@ -98,6 +100,7 @@ export default function App() {
         await desktopApi.system.openExternalUrl(targetUrl);
       }
     } catch (error) {
+      setUpdateDownloadProgress(null);
       if (manual) {
         setUpdateMessage(formatUpdateErrorMessage(error));
       }
@@ -108,6 +111,13 @@ export default function App() {
 
   useEffect(() => {
     void checkForUpdates(false);
+  }, []);
+
+  useEffect(() => {
+    const desktopApi = getDesktopApi();
+    return desktopApi?.system.onUpdateDownloadProgress?.((progress) => {
+      setUpdateDownloadProgress(progress);
+    });
   }, []);
 
   const handleCreateProfessor = async (draft: ProfessorDraft) => {
@@ -168,6 +178,7 @@ export default function App() {
         view={view}
         onChangeView={setView}
         updateMessage={updateMessage}
+        updateDownloadProgress={updateDownloadProgress}
         isCheckingUpdates={isCheckingUpdates}
         onCheckUpdates={() => void checkForUpdates(true)}
       />

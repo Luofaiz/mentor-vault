@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld('vibe', {
     checkForUpdates: () => ipcRenderer.invoke('system:check-for-updates'),
     openExternalUrl: (url) => ipcRenderer.invoke('system:open-external-url', url),
     installUpdate: (downloadUrl) => ipcRenderer.invoke('system:install-update', downloadUrl),
+    onUpdateDownloadProgress: (callback) => {
+      const listener = (_event, progress) => callback(progress);
+      ipcRenderer.on('system:update-download-progress', listener);
+      return () => ipcRenderer.removeListener('system:update-download-progress', listener);
+    },
   },
   professors: {
     list: (filters) => ipcRenderer.invoke('professors:list', filters),

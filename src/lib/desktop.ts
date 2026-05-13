@@ -33,6 +33,7 @@ export interface VibeDesktopApi {
     }>;
     openExternalUrl: (url: string) => Promise<void>;
     installUpdate: (downloadUrl: string) => Promise<{ ok: true }>;
+    onUpdateDownloadProgress?: (callback: (progress: UpdateDownloadProgress) => void) => () => void;
   };
   professors: {
     list: (filters?: ProfessorFilters) => Promise<Professor[]>;
@@ -78,6 +79,14 @@ export interface VibeDesktopApi {
     getFeedback: (input: FeedbackInput) => Promise<string>;
     chat: (input: AIChatInput) => Promise<string>;
   };
+}
+
+export interface UpdateDownloadProgress {
+  transferredBytes: number;
+  totalBytes?: number;
+  bytesPerSecond: number;
+  remainingSeconds?: number;
+  percent?: number;
 }
 
 export function getDesktopApi(): VibeDesktopApi | null {

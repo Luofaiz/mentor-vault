@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
@@ -25,6 +25,7 @@ const DEFAULT_UPDATE_MANIFEST_FALLBACK_URLS = [
 const UPDATE_CHECK_TIMEOUT_MS = 30000;
 const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const UPDATE_INSTALLER_FILE_NAME = 'MentorVaultSetup.exe';
+const UPDATE_DOWNLOAD_PROGRESS_CHANNEL = 'system:update-download-progress';
 
 const DEFAULT_PROFESSORS = [];
 
@@ -257,7 +258,61 @@ function quoteWindowsCommandArg(value) {
   return `"${String(value).replace(/"/g, '""')}"`;
 }
 
-async function downloadUpdateInstaller(downloadUrl) {
+function sendUpdateDownloadProgress(webContents, progress) {
+  if (!webContents || webContents.isDestroyed()) {
+    return;
+  }
+
+  webContents.send(UPDATE_DOWNLOAD_PROGRESS_CHANNEL, progress);
+}
+
+function createUpdateDownloadProgressStream(totalBytes, notifyProgress) {
+  let transferredBytes = 0;
+  let lastSentAt = 0;
+  const startedAt = Date.now();
+
+  const emitProgress = (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastSentAt < 200) {
+      return;
+    }
+
+    const elapsedSeconds = Math.max((now - startedAt) / 1000, 0.001);
+    const bytesPerSecond = transferredBytes / elapsedSeconds;
+    const remainingBytes = totalBytes ? Math.max(totalBytes - transferredBytes, 0) : undefined;
+
+    lastSentAt = now;
+    notifyProgress({
+      transferredBytes,
+      totalBytes,
+      bytesPerSecond,
+      remainingSeconds: remainingBytes === undefined || bytesPerSecond <= 0 ? undefined : remainingBytes / bytesPerSecond,
+      percent: totalBytes ? Math.min(100, Math.round((transferredBytes / totalBytes) * 100)) : undefined,
+    });
+  };
+
+  notifyProgress({
+    transferredBytes: 0,
+    totalBytes,
+    bytesPerSecond: 0,
+    remainingSeconds: undefined,
+    percent: totalBytes ? 0 : undefined,
+  });
+
+  return new Transform({
+    transform(chunk, _encoding, callback) {
+      transferredBytes += chunk.length;
+      emitProgress(transferredBytes === totalBytes);
+      callback(null, chunk);
+    },
+    flush(callback) {
+      emitProgress(true);
+      callback();
+    },
+  });
+}
+
+async function downloadUpdateInstaller(downloadUrl, webContents) {
   const parsed = new URL(String(downloadUrl ?? '').trim());
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     throw new Error('更新安装包地址必须使用 http 或 https。');
@@ -279,10 +334,33 @@ async function downloadUpdateInstaller(downloadUrl) {
       throw new Error(`${response.status} ${response.statusText}`);
     }
 
+    const contentLength = Number.parseInt(response.headers.get('content-length') ?? '', 10);
+    const totalBytes = Number.isFinite(contentLength) && contentLength > 0 ? contentLength : undefined;
+    const notifyProgress = (progress) => sendUpdateDownloadProgress(webContents, progress);
+
     if (response.body) {
-      await pipeline(Readable.fromWeb(response.body), createWriteStream(installerPath));
+      await pipeline(
+        Readable.fromWeb(response.body),
+        createUpdateDownloadProgressStream(totalBytes, notifyProgress),
+        createWriteStream(installerPath),
+      );
     } else {
-      await writeFile(installerPath, Buffer.from(await response.arrayBuffer()));
+      const buffer = Buffer.from(await response.arrayBuffer());
+      notifyProgress({
+        transferredBytes: 0,
+        totalBytes: buffer.length,
+        bytesPerSecond: 0,
+        remainingSeconds: undefined,
+        percent: 0,
+      });
+      await writeFile(installerPath, buffer);
+      notifyProgress({
+        transferredBytes: buffer.length,
+        totalBytes: buffer.length,
+        bytesPerSecond: 0,
+        remainingSeconds: 0,
+        percent: 100,
+      });
     }
 
     return installerPath;
@@ -297,12 +375,12 @@ async function downloadUpdateInstaller(downloadUrl) {
   }
 }
 
-async function installUpdate(downloadUrl) {
+async function installUpdate(downloadUrl, webContents) {
   if (process.platform !== 'win32') {
     throw new Error('当前自动安装更新只支持 Windows。');
   }
 
-  const installerPath = await downloadUpdateInstaller(downloadUrl);
+  const installerPath = await downloadUpdateInstaller(downloadUrl, webContents);
   const command = `timeout /t 2 /nobreak > nul & start "" ${quoteWindowsCommandArg(installerPath)}`;
   const child = spawn(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', command], {
     detached: true,
@@ -1134,7 +1212,7 @@ ipcMain.handle('system:open-external-url', async (_event, url) => {
   await openExternalUrl(url);
 });
 
-ipcMain.handle('system:install-update', async (_event, downloadUrl) => installUpdate(downloadUrl));
+ipcMain.handle('system:install-update', async (event, downloadUrl) => installUpdate(downloadUrl, event.sender));
 
 ipcMain.handle('professors:list', async (_event, filters) => {
   const store = await ensureStore();

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { cn } from '../lib/utils';
+import type { UpdateDownloadProgress } from '../lib/desktop';
 
 type View = 'contacts' | 'schools' | 'trash';
 
@@ -19,6 +20,7 @@ interface AppSidebarProps {
   view: View;
   onChangeView: (view: View) => void;
   updateMessage: string | null;
+  updateDownloadProgress: UpdateDownloadProgress | null;
   isCheckingUpdates: boolean;
   onCheckUpdates: () => void;
 }
@@ -27,10 +29,14 @@ export function AppSidebar({
   view,
   onChangeView,
   updateMessage,
+  updateDownloadProgress,
   isCheckingUpdates,
   onCheckUpdates,
 }: AppSidebarProps) {
   const { t } = useI18n();
+  const progressPercent = updateDownloadProgress?.percent ?? null;
+  const progressLabel = progressPercent === null ? '正在下载' : `${progressPercent}%`;
+  const progressWidth = progressPercent === null ? 100 : Math.max(0, Math.min(100, progressPercent));
 
   return (
     <aside className="h-screen w-72 shrink-0 overflow-hidden border-r border-stone-200 bg-white/70 flex flex-col p-5 space-y-6 backdrop-blur-md">
@@ -87,7 +93,30 @@ export function AppSidebar({
           <span>{isCheckingUpdates ? t('checkingUpdates') : t('checkUpdates')}</span>
         </button>
         {updateMessage && (
-          <p className="rounded-2xl bg-stone-50 px-4 py-3 text-xs leading-5 text-stone-500">{updateMessage}</p>
+          <div className="rounded-2xl bg-stone-50 px-4 py-3 text-xs leading-5 text-stone-500">
+            <p>{updateMessage}</p>
+            {updateDownloadProgress && (
+              <div className="mt-3 space-y-2">
+                <div className="h-2 overflow-hidden rounded-full bg-stone-200">
+                  <div
+                    className={cn(
+                      'h-full rounded-full bg-stone-900 transition-all',
+                      progressPercent === null && 'animate-pulse',
+                    )}
+                    style={{ width: `${progressWidth}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-stone-600">
+                  <span>{progressLabel}</span>
+                  <span>{formatBytes(updateDownloadProgress.transferredBytes)} / {formatBytes(updateDownloadProgress.totalBytes)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-[11px] text-stone-400">
+                  <span>{formatBytes(updateDownloadProgress.bytesPerSecond)}/s</span>
+                  <span>剩余 {formatDuration(updateDownloadProgress.remainingSeconds)}</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -102,4 +131,37 @@ export function AppSidebar({
       </div>
     </aside>
   );
+}
+
+function formatBytes(bytes?: number) {
+  if (!Number.isFinite(bytes) || !bytes) {
+    return '--';
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  const fractionDigits = value >= 10 || unitIndex === 0 ? 0 : 1;
+  return `${value.toFixed(fractionDigits)} ${units[unitIndex]}`;
+}
+
+function formatDuration(seconds?: number) {
+  if (!Number.isFinite(seconds) || seconds === undefined) {
+    return '--';
+  }
+
+  const roundedSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
+
+  if (minutes <= 0) {
+    return `${remainingSeconds} 秒`;
+  }
+
+  return `${minutes} 分 ${remainingSeconds} 秒`;
 }

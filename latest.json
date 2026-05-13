@@ -1,6 +1,6 @@
 {
-  "version": "0.2.2",
-  "notes": "修复按学校界面的滚动体验：学校索引和右侧老师列表现在可以分别滚动；老师卡片里的记录进展按钮保持单行显示。",
+  "version": "0.2.3",
+  "notes": "更新下载过程新增进度条、实时下载速度和预计剩余时间显示。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }

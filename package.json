@@ -4,7 +4,7 @@
   "description": "Local teacher and mentor records database.",
   "author": "Luofaiz",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "main": "electron/main.mjs",
   "updateManifestUrl": "https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json",
