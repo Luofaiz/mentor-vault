@@ -161,6 +161,7 @@ export default function App() {
       name: professor.name,
       title: professor.title,
       school: professor.school,
+      college: professor.college,
       email: professor.email,
       homepage: professor.homepage,
       researchArea: professor.researchArea,

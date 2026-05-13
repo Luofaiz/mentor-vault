@@ -1,6 +1,6 @@
 {
-  "version": "0.2.3",
-  "notes": "更新下载过程新增进度条、实时下载速度和预计剩余时间显示。",
+  "version": "0.2.4",
+  "notes": "老师信息新增学院字段，支持新增编辑、搜索、卡片展示、时间线展示和 Excel 导入导出。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }

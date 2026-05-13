@@ -82,6 +82,7 @@ export function SchoolDirectoryPage({
       return [
         professor.name,
         professor.title,
+        professor.college,
         professor.email,
         professor.homepage,
         professor.researchArea,

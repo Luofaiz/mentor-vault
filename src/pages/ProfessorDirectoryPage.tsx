@@ -96,6 +96,7 @@ export function ProfessorDirectoryPage({
           professor.name,
           professor.title,
           professor.school,
+          professor.college,
           professor.email,
           professor.homepage,
           professor.researchArea,

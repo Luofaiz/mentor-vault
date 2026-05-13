@@ -20,6 +20,7 @@ export interface Professor {
   name: string;
   title: string;
   school: string;
+  college: string;
   email: string;
   homepage: string;
   researchArea: string;
@@ -37,6 +38,7 @@ export interface ProfessorDraft {
   name: string;
   title: string;
   school: string;
+  college: string;
   email: string;
   homepage: string;
   researchArea: string;

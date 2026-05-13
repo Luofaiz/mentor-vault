@@ -14,6 +14,7 @@ const EMPTY_DRAFT: ProfessorDraft = {
   name: '',
   title: '',
   school: '',
+  college: '',
   email: '',
   homepage: '',
   researchArea: '',
@@ -42,6 +43,7 @@ export function ProfessorFormDialog({ open, professor, onClose, onSubmit }: Prof
         name: professor.name,
         title: professor.title,
         school: professor.school,
+        college: professor.college,
         email: professor.email,
         homepage: professor.homepage,
         researchArea: professor.researchArea,
@@ -150,6 +152,15 @@ export function ProfessorFormDialog({ open, professor, onClose, onSubmit }: Prof
               required
               value={draft.school}
               onChange={(event) => updateField('school', event.target.value)}
+              className="w-full rounded-2xl border border-stone-200 px-4 py-3 outline-none transition-colors focus:border-accent"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-stone-600">{t('college')}</span>
+            <input
+              value={draft.college}
+              onChange={(event) => updateField('college', event.target.value)}
               className="w-full rounded-2xl border border-stone-200 px-4 py-3 outline-none transition-colors focus:border-accent"
             />
           </label>

@@ -54,6 +54,7 @@ export function ProfessorCard({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{professor.title || t('professorFallback')}</p>
           <h3 className="mt-2 text-xl font-semibold tracking-tight text-stone-900">{professor.name}</h3>
           <p className="mt-1 text-sm text-stone-500">{professor.school || t('schoolNotSet')}</p>
+          {professor.college && <p className="mt-1 text-sm text-stone-400">{professor.college}</p>}
         </div>
         <span className={cn('rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]', STATUS_STYLES[professor.status] ?? CUSTOM_STATUS_STYLE)}>
           {getStatusLabel(professor.status)}

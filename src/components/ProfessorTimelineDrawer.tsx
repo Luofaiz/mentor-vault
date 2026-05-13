@@ -90,7 +90,9 @@ export function ProfessorTimelineDrawer({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('professorTimeline')}</p>
             <h2 className="mt-2 text-3xl font-serif font-medium tracking-tight text-stone-900">{professor.name}</h2>
             <p className="mt-2 text-sm leading-6 text-stone-500">
-              {professor.school || t('schoolNotSet')} · {professor.researchArea || t('researchAreaNotSet')}
+              {[professor.school || t('schoolNotSet'), professor.college, professor.researchArea || t('researchAreaNotSet')]
+                .filter(Boolean)
+                .join(' / ')}
             </p>
           </div>
           <button onClick={onClose} className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700">
