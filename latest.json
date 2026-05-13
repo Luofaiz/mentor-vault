@@ -1,6 +1,6 @@
 {
-  "version": "0.2.7",
-  "notes": "修复更新下载完成后只弹出 cmd 而不启动安装程序的问题，并将更新配置改为优先使用 GitHub Release 资产。",
+  "version": "0.2.8",
+  "notes": "界面命名调整：老师库改为导师资料，按学校改为院校分组，并同步更新说明文档。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }

@@ -1,12 +1,12 @@
 # Mentor Vault
 
-Mentor Vault 是一个本地桌面端老师信息库，用来像表格一样记录导师、学校、研究方向、联系状态和套磁进展。
+Mentor Vault 是一个本地桌面端导师资料工具，用来像表格一样记录导师、学校、研究方向、联系状态和套磁进展。
 
 ## 主要功能
 
 - 老师信息管理：姓名、学校、职称、邮箱、主页、研究方向、状态、标签和备注。
-- 按状态整理：在老师库中按状态查看和筛选记录。
-- 按学校整理：单独的学校视图，可以查看每个学校已联系的老师和对应进展。
+- 按状态整理：在导师资料中按状态查看和筛选记录。
+- 院校分组：单独的院校分组视图，可以查看每个学校已联系的老师和对应进展。
 - 进展时间线：为每位老师记录初次联系、跟进、回复、备注等事件。
 - 本地数据存储：用户数据保存在电脑本地，安装包和 GitHub Release 不包含用户个人数据。
 - 导入导出：支持从表格导入老师记录，也支持导出记录。
@@ -59,7 +59,7 @@ release/installer/MentorVaultSetup.exe
 程序内置的更新清单地址：
 
 ```text
-https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json
+https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json
 ```
 
 发布新版本时需要：
@@ -72,4 +72,3 @@ https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json
 ## 数据位置
 
 用户数据保存在系统应用数据目录下的 `Mentor Vault` 文件夹中。卸载或安装新版本不会主动删除用户数据。
-
