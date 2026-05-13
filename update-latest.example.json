@@ -1,6 +1,6 @@
 {
-  "version": "0.2.8",
+  "version": "0.2.9",
   "notes": "这里填写新版本更新说明。",
-  "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
-  "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
+  "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
+  "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

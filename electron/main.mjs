@@ -15,12 +15,12 @@ const DESKTOP_DATA_DIRNAME = 'Mentor Vault';
 const LEGACY_DATA_DIRNAMES = ['Professor Tracker', 'Vibe Sender', 'vibe-sender'];
 const UPDATE_MANIFEST_ENV_KEYS = ['PROFESSOR_TRACKER_UPDATE_URL', 'UPDATE_MANIFEST_URL'];
 const DEFAULT_UPDATE_MANIFEST_URL =
-  'https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/latest.json';
+  'https://github.com/Luofaiz/mentor-vault/releases/latest/download/latest.json';
 const DEFAULT_UPDATE_MANIFEST_FALLBACK_URLS = [
-  'https://raw.githubusercontent.com/Luofaiz/mentor-vault-releases/main/latest.json',
-  'https://api.github.com/repos/Luofaiz/mentor-vault-releases/releases/latest',
-  'https://cdn.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json',
-  'https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault-releases@main/latest.json',
+  'https://raw.githubusercontent.com/Luofaiz/mentor-vault/main/latest.json',
+  'https://api.github.com/repos/Luofaiz/mentor-vault/releases/latest',
+  'https://cdn.jsdelivr.net/gh/Luofaiz/mentor-vault@main/latest.json',
+  'https://gcore.jsdelivr.net/gh/Luofaiz/mentor-vault@main/latest.json',
 ];
 const UPDATE_CHECK_TIMEOUT_MS = 30000;
 const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
