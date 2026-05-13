@@ -1,6 +1,6 @@
 {
-  "version": "0.1.8",
-  "notes": "Keeps the left navigation fixed in width and height while the main content scrolls independently.",
-  "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultPortable.zip",
+  "version": "0.2.0",
+  "notes": "Switches releases to a Windows installer and supports downloading and launching the installer from inside the app.",
+  "downloadUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault-releases/releases/latest"
 }
