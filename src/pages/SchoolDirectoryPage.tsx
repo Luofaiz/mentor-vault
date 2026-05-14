@@ -194,7 +194,7 @@ export function SchoolDirectoryPage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 py-8 md:px-12">
-      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
+      <div className="flex min-h-0 w-full flex-1 flex-col">
         <div className="shrink-0 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('schoolViewEyebrow')}</p>
@@ -284,7 +284,7 @@ export function SchoolDirectoryPage({
               </aside>
             )}
 
-            <div className="min-h-0 overflow-y-auto pr-1">
+            <div className="min-h-0 min-w-0 overflow-y-auto pr-1">
               <div className="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -341,7 +341,7 @@ export function SchoolDirectoryPage({
                         <h3 className="text-lg font-semibold text-stone-900">{t('status')}: {getStatusLabel(group.status)}</h3>
                         <span className="text-sm text-stone-400">{group.professors.length}</span>
                       </div>
-                      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                      <div className="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-5">
                         {group.professors.map((professor) => (
                           <ProfessorCard
                             key={professor.id}

@@ -1,6 +1,6 @@
 {
-  "version": "0.2.12",
-  "notes": "优化院校分组体验：当前学校只有一个学院时自动隐藏学院索引，多个学院时再显示学院栏。",
+  "version": "0.2.13",
+  "notes": "优化院校分组宽屏布局：页面会随窗口宽度展开，右侧导师卡片自动增加列数。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
