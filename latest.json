@@ -1,6 +1,6 @@
 {
-  "version": "0.2.16",
-  "notes": "院校分组支持直接修改学校名称，保存后该学校下的老师会同步使用新学校名。",
+  "version": "0.2.17",
+  "notes": "将“导师资料”入口和页面标题统一改为“导师汇总”。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
