@@ -1,6 +1,6 @@
 {
-  "version": "0.2.10",
-  "notes": "修复导师卡片中主页链接过长时超出卡片边界的问题。",
+  "version": "0.2.11",
+  "notes": "院校分组新增学院索引，支持学校-学院-导师三级查看，并在新增老师时自动带入当前学校和学院。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

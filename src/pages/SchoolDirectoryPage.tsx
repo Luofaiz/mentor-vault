@@ -18,6 +18,9 @@ interface SchoolDirectoryPageProps {
   onCreateTimelineEvent: (draft: TimelineEventDraft) => Promise<void>;
 }
 
+const ALL_COLLEGES_ID = 'all-colleges';
+const COLLEGE_NOT_SET_ID = 'college-not-set';
+
 export function SchoolDirectoryPage({
   professors,
   isLoading,
@@ -63,6 +66,7 @@ export function SchoolDirectoryPage({
       .sort((left, right) => right.professors.length - left.professors.length || left.school.localeCompare(right.school, locale === 'zh' ? 'zh-CN' : 'en-US'));
   }, [activeProfessors, availableStatuses, locale, t]);
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+  const [selectedCollegeId, setSelectedCollegeId] = useState(ALL_COLLEGES_ID);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ProfessorStatus>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,9 +75,59 @@ export function SchoolDirectoryPage({
   const timeline = useTimeline(detailProfessor?.id ?? null);
 
   const selectedGroup = schoolGroups.find((group) => group.school === selectedSchool) ?? schoolGroups[0] ?? null;
+  const collegeGroups = useMemo(() => {
+    if (!selectedGroup) {
+      return [];
+    }
+
+    const groups = new Map<string, { college: string; professors: Professor[] }>();
+
+    selectedGroup.professors.forEach((professor) => {
+      const college = professor.college.trim();
+      const id = college ? `college:${college}` : COLLEGE_NOT_SET_ID;
+      const label = college || t('collegeNotSet');
+      const group = groups.get(id);
+
+      if (group) {
+        group.professors.push(professor);
+        return;
+      }
+
+      groups.set(id, { college: label, professors: [professor] });
+    });
+
+    const collegeRecords = Array.from(groups.entries())
+      .map(([id, group]) => ({
+        id,
+        college: group.college,
+        professors: group.professors,
+        statusCounts: availableStatuses
+          .map((status) => ({
+            status,
+            count: group.professors.filter((professor) => professor.status === status).length,
+          }))
+          .filter((item) => item.count > 0),
+      }))
+      .sort((left, right) => right.professors.length - left.professors.length || left.college.localeCompare(right.college, locale === 'zh' ? 'zh-CN' : 'en-US'));
+
+    return [
+      {
+        id: ALL_COLLEGES_ID,
+        college: t('allColleges'),
+        professors: selectedGroup.professors,
+        statusCounts: selectedGroup.statusCounts,
+      },
+      ...collegeRecords,
+    ];
+  }, [availableStatuses, locale, selectedGroup, t]);
+  const selectedCollegeGroup = collegeGroups.find((group) => group.id === selectedCollegeId) ?? collegeGroups[0] ?? null;
   const defaultSchoolForCreate = selectedGroup?.school === t('schoolNotSet') ? '' : (selectedGroup?.school ?? '');
+  const defaultCollegeForCreate =
+    selectedCollegeGroup && selectedCollegeGroup.id !== ALL_COLLEGES_ID && selectedCollegeGroup.id !== COLLEGE_NOT_SET_ID
+      ? selectedCollegeGroup.college
+      : '';
   const normalizedSearch = search.trim().toLowerCase();
-  const visibleProfessors = (selectedGroup?.professors ?? [])
+  const visibleProfessors = (selectedCollegeGroup?.professors ?? [])
     .filter((professor) => (statusFilter === 'all' ? true : professor.status === statusFilter))
     .filter((professor) => {
       if (!normalizedSearch) {
@@ -119,7 +173,8 @@ export function SchoolDirectoryPage({
       ? draft
       : {
           ...draft,
-          school: draft.school.trim() || selectedGroup.school,
+          school: draft.school.trim() || defaultSchoolForCreate,
+          college: draft.college.trim() || defaultCollegeForCreate,
         };
 
     if (professorId) {
@@ -160,7 +215,7 @@ export function SchoolDirectoryPage({
             <p className="mt-2 text-sm text-stone-400">{t('createFirstProfessor')}</p>
           </div>
         ) : (
-          <div className="mt-8 grid min-h-0 flex-1 gap-6 xl:grid-cols-[20rem_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]">
+          <div className="mt-8 grid min-h-0 flex-1 gap-6 xl:grid-cols-[18rem_16rem_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm">
               <div className="shrink-0 flex items-center gap-2 px-2 pb-3">
                 <Building2 className="h-4 w-4 text-accent" />
@@ -173,7 +228,10 @@ export function SchoolDirectoryPage({
                     <button
                       key={group.school}
                       type="button"
-                      onClick={() => setSelectedSchool(group.school)}
+                      onClick={() => {
+                        setSelectedSchool(group.school);
+                        setSelectedCollegeId(ALL_COLLEGES_ID);
+                      }}
                       className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -189,12 +247,41 @@ export function SchoolDirectoryPage({
               </div>
             </aside>
 
+            <aside className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm">
+              <div className="shrink-0 flex items-center gap-2 px-2 pb-3">
+                <Building2 className="h-4 w-4 text-accent" />
+                <h2 className="text-sm font-semibold text-stone-900">{t('collegeIndex')}</h2>
+              </div>
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {collegeGroups.map((group) => {
+                  const selected = selectedCollegeGroup?.id === group.id;
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => setSelectedCollegeId(group.id)}
+                      className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate text-sm font-semibold">{group.college}</span>
+                        <span className={`text-xs ${selected ? 'text-stone-300' : 'text-stone-400'}`}>{group.professors.length}</span>
+                      </div>
+                      <p className={`mt-2 line-clamp-2 text-xs leading-5 ${selected ? 'text-stone-300' : 'text-stone-500'}`}>
+                        {group.statusCounts.map((item) => `${getStatusLabel(item.status)} ${item.count}`).join(' / ')}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
             <div className="min-h-0 overflow-y-auto pr-1">
               <div className="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('school')}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('school')} / {t('college')}</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-900">{selectedGroup?.school}</h2>
+                    {selectedCollegeGroup && <p className="mt-1 text-sm text-stone-500">{selectedCollegeGroup.college}</p>}
                   </div>
                   <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-500">
                     {t('recordCount', {
@@ -270,6 +357,7 @@ export function SchoolDirectoryPage({
         open={dialogOpen}
         professor={editingProfessor}
         defaultSchool={defaultSchoolForCreate}
+        defaultCollege={defaultCollegeForCreate}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleSubmit}
       />
