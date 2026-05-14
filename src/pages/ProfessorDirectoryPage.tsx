@@ -194,7 +194,7 @@ export function ProfessorDirectoryPage({
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 md:px-12">
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="w-full">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{mode === 'active' ? t('dataLayer') : t('safetyNet')}</p>
@@ -319,7 +319,7 @@ export function ProfessorDirectoryPage({
                     <h2 className="text-lg font-semibold text-stone-900">{t('status')}: {getStatusLabel(group.status)}</h2>
                     <span className="text-sm text-stone-400">{group.professors.length}</span>
                   </div>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-5">
                     {group.professors.map((professor) => (
                       <ProfessorCard
                         key={professor.id}
@@ -337,7 +337,7 @@ export function ProfessorDirectoryPage({
               ))}
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-5">
               {visibleProfessors.map((professor) => (
                 <ProfessorCard
                   key={professor.id}
