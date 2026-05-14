@@ -1,6 +1,6 @@
 {
-  "version": "0.2.14",
-  "notes": "优化导师资料宽屏布局：页面会随窗口宽度展开，导师卡片自动增加列数。",
+  "version": "0.2.15",
+  "notes": "新增侧边栏统计，显示当前已联系老师数和总老师数。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

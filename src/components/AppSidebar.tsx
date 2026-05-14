@@ -21,6 +21,8 @@ export interface Attachment {
 
 interface AppSidebarProps {
   view: View;
+  contactedProfessorCount: number;
+  activeProfessorCount: number;
   onChangeView: (view: View) => void;
   updateMessage: string | null;
   updateDownloadProgress: UpdateDownloadProgress | null;
@@ -33,6 +35,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({
   view,
+  contactedProfessorCount,
+  activeProfessorCount,
   onChangeView,
   updateMessage,
   updateDownloadProgress,
@@ -154,6 +158,16 @@ export function AppSidebar({
         <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
           <BookOpenCheck className="w-4 h-4" />
           <span>{t('phase1')}</span>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-2xl bg-white/10 px-3 py-3">
+            <p className="text-[11px] font-medium text-stone-400">{t('contactedProfessors')}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-white">{contactedProfessorCount}</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 px-3 py-3">
+            <p className="text-[11px] font-medium text-stone-400">{t('activeProfessors')}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-white">{activeProfessorCount}</p>
+          </div>
         </div>
         <p className="mt-3 text-sm leading-relaxed text-stone-200">
           {t('phase1Desc')}

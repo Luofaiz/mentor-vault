@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppSidebar } from './components/AppSidebar';
 import { useProfessorDirectory } from './hooks/useProfessorDirectory';
 import { getDesktopApi, type UpdateDownloadProgress } from './lib/desktop';
@@ -9,6 +9,17 @@ import type { ProfessorDraft } from './types/professor';
 import type { TimelineEventDraft } from './types/timeline';
 
 type View = 'contacts' | 'schools' | 'trash';
+
+const CONTACTED_STATUSES = new Set([
+  'Contacted',
+  'Follow-Up Due',
+  'Replied',
+  '未读',
+  '已读不回',
+  '官回',
+  '待面试',
+  '待考核',
+]);
 
 function formatUpdateErrorMessage(error: unknown) {
   const rawMessage = error instanceof Error ? error.message : String(error ?? '');
@@ -59,6 +70,14 @@ export default function App() {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const isCancelingUpdateDownloadRef = useRef(false);
   const professorDirectory = useProfessorDirectory();
+  const professorStats = useMemo(() => {
+    const activeProfessors = professorDirectory.professors.filter((professor) => !professor.deletedAt);
+
+    return {
+      activeProfessorCount: activeProfessors.length,
+      contactedProfessorCount: activeProfessors.filter((professor) => CONTACTED_STATUSES.has(professor.status)).length,
+    };
+  }, [professorDirectory.professors]);
 
   const checkForUpdates = async (manual = true) => {
     const desktopApi = getDesktopApi();
@@ -220,6 +239,8 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-paper text-ink selection:bg-accent/20">
       <AppSidebar
         view={view}
+        contactedProfessorCount={professorStats.contactedProfessorCount}
+        activeProfessorCount={professorStats.activeProfessorCount}
         onChangeView={setView}
         updateMessage={updateMessage}
         updateDownloadProgress={updateDownloadProgress}
