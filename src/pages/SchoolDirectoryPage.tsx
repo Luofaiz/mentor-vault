@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Building2, Plus, Search } from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Building2, Check, PencilLine, Plus, Search, X } from 'lucide-react';
 import { ProfessorCard } from '../components/ProfessorCard';
 import { ProfessorFormDialog } from '../components/ProfessorFormDialog';
 import { ProfessorTimelineDrawer } from '../components/ProfessorTimelineDrawer';
@@ -72,6 +72,9 @@ export function SchoolDirectoryPage({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfessor, setEditingProfessor] = useState<Professor | null>(null);
   const [detailProfessor, setDetailProfessor] = useState<Professor | null>(null);
+  const [isRenamingSchool, setIsRenamingSchool] = useState(false);
+  const [schoolNameDraft, setSchoolNameDraft] = useState('');
+  const [isSavingSchoolName, setIsSavingSchoolName] = useState(false);
   const timeline = useTimeline(detailProfessor?.id ?? null);
 
   const selectedGroup = schoolGroups.find((group) => group.school === selectedSchool) ?? schoolGroups[0] ?? null;
@@ -173,6 +176,58 @@ export function SchoolDirectoryPage({
   const openEditDialog = (professor: Professor) => {
     setEditingProfessor(professor);
     setDialogOpen(true);
+  };
+
+  const openRenameSchool = () => {
+    if (!selectedGroup) {
+      return;
+    }
+
+    setSchoolNameDraft(selectedGroup.school === t('schoolNotSet') ? '' : selectedGroup.school);
+    setIsRenamingSchool(true);
+  };
+
+  const cancelRenameSchool = () => {
+    setIsRenamingSchool(false);
+    setSchoolNameDraft('');
+  };
+
+  const handleRenameSchool = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedGroup) {
+      return;
+    }
+
+    const nextSchool = schoolNameDraft.trim();
+    if (!nextSchool || nextSchool === defaultSchoolForCreate) {
+      cancelRenameSchool();
+      return;
+    }
+
+    setIsSavingSchoolName(true);
+    try {
+      for (const professor of selectedGroup.professors) {
+        await onUpdateProfessor(professor.id, {
+          name: professor.name,
+          title: professor.title,
+          school: nextSchool,
+          college: professor.college,
+          email: professor.email,
+          homepage: professor.homepage,
+          researchArea: professor.researchArea,
+          status: professor.status,
+          tags: professor.tags,
+          firstContactDate: professor.firstContactDate,
+          lastContactDate: professor.lastContactDate,
+          notes: professor.notes,
+        });
+      }
+      setSelectedSchool(nextSchool);
+      setSelectedCollegeId(ALL_COLLEGES_ID);
+      cancelRenameSchool();
+    } finally {
+      setIsSavingSchoolName(false);
+    }
   };
 
   const handleSubmit = async (draft: ProfessorDraft, professorId?: string) => {
@@ -289,7 +344,48 @@ export function SchoolDirectoryPage({
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('school')} / {t('college')}</p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-900">{selectedGroup?.school}</h2>
+                    {isRenamingSchool ? (
+                      <form onSubmit={(event) => void handleRenameSchool(event)} className="mt-2 flex max-w-xl items-center gap-2">
+                        <input
+                          autoFocus
+                          required
+                          value={schoolNameDraft}
+                          onChange={(event) => setSchoolNameDraft(event.target.value)}
+                          placeholder={t('schoolNamePlaceholder')}
+                          className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-xl font-semibold tracking-tight text-stone-900 outline-none transition-colors focus:border-accent"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSavingSchoolName}
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          title={t('saveChanges')}
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelRenameSchool}
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:bg-stone-50"
+                          title={t('cancel')}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="mt-2 flex min-w-0 items-center gap-2">
+                        <h2 className="min-w-0 truncate text-2xl font-semibold tracking-tight text-stone-900">{selectedGroup?.school}</h2>
+                        {selectedGroup && (
+                          <button
+                            type="button"
+                            onClick={openRenameSchool}
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+                            title={t('renameSchool')}
+                          >
+                            <PencilLine className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {collegeTitle && <p className="mt-1 text-sm text-stone-500">{collegeTitle}</p>}
                   </div>
                   <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-500">

@@ -1,6 +1,6 @@
 {
-  "version": "0.2.15",
-  "notes": "新增侧边栏统计，显示当前已联系老师数和总老师数。",
+  "version": "0.2.16",
+  "notes": "院校分组支持直接修改学校名称，保存后该学校下的老师会同步使用新学校名。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
