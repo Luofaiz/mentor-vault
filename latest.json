@@ -1,6 +1,6 @@
 {
-  "version": "0.2.11",
-  "notes": "院校分组新增学院索引，支持学校-学院-导师三级查看，并在新增老师时自动带入当前学校和学院。",
+  "version": "0.2.12",
+  "notes": "优化院校分组体验：当前学校只有一个学院时自动隐藏学院索引，多个学院时再显示学院栏。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

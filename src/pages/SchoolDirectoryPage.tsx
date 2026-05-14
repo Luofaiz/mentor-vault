@@ -120,12 +120,19 @@ export function SchoolDirectoryPage({
       ...collegeRecords,
     ];
   }, [availableStatuses, locale, selectedGroup, t]);
-  const selectedCollegeGroup = collegeGroups.find((group) => group.id === selectedCollegeId) ?? collegeGroups[0] ?? null;
+  const actualCollegeGroups = collegeGroups.filter((group) => group.id !== ALL_COLLEGES_ID);
+  const shouldShowCollegeIndex = actualCollegeGroups.length > 1;
+  const selectedCollegeGroup = shouldShowCollegeIndex
+    ? collegeGroups.find((group) => group.id === selectedCollegeId) ?? collegeGroups[0] ?? null
+    : collegeGroups[0] ?? null;
   const defaultSchoolForCreate = selectedGroup?.school === t('schoolNotSet') ? '' : (selectedGroup?.school ?? '');
   const defaultCollegeForCreate =
-    selectedCollegeGroup && selectedCollegeGroup.id !== ALL_COLLEGES_ID && selectedCollegeGroup.id !== COLLEGE_NOT_SET_ID
+    shouldShowCollegeIndex && selectedCollegeGroup && selectedCollegeGroup.id !== ALL_COLLEGES_ID && selectedCollegeGroup.id !== COLLEGE_NOT_SET_ID
       ? selectedCollegeGroup.college
+      : !shouldShowCollegeIndex && actualCollegeGroups.length === 1 && actualCollegeGroups[0].id !== COLLEGE_NOT_SET_ID
+      ? actualCollegeGroups[0].college
       : '';
+  const collegeTitle = shouldShowCollegeIndex ? selectedCollegeGroup?.college : actualCollegeGroups[0]?.college;
   const normalizedSearch = search.trim().toLowerCase();
   const visibleProfessors = (selectedCollegeGroup?.professors ?? [])
     .filter((professor) => (statusFilter === 'all' ? true : professor.status === statusFilter))
@@ -215,7 +222,7 @@ export function SchoolDirectoryPage({
             <p className="mt-2 text-sm text-stone-400">{t('createFirstProfessor')}</p>
           </div>
         ) : (
-          <div className="mt-8 grid min-h-0 flex-1 gap-6 xl:grid-cols-[18rem_16rem_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]">
+          <div className={`mt-8 grid min-h-0 flex-1 gap-6 xl:grid-rows-[minmax(0,1fr)] ${shouldShowCollegeIndex ? 'xl:grid-cols-[18rem_16rem_minmax(0,1fr)]' : 'xl:grid-cols-[18rem_minmax(0,1fr)]'}`}>
             <aside className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm">
               <div className="shrink-0 flex items-center gap-2 px-2 pb-3">
                 <Building2 className="h-4 w-4 text-accent" />
@@ -247,33 +254,35 @@ export function SchoolDirectoryPage({
               </div>
             </aside>
 
-            <aside className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm">
-              <div className="shrink-0 flex items-center gap-2 px-2 pb-3">
-                <Building2 className="h-4 w-4 text-accent" />
-                <h2 className="text-sm font-semibold text-stone-900">{t('collegeIndex')}</h2>
-              </div>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                {collegeGroups.map((group) => {
-                  const selected = selectedCollegeGroup?.id === group.id;
-                  return (
-                    <button
-                      key={group.id}
-                      type="button"
-                      onClick={() => setSelectedCollegeId(group.id)}
-                      className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-semibold">{group.college}</span>
-                        <span className={`text-xs ${selected ? 'text-stone-300' : 'text-stone-400'}`}>{group.professors.length}</span>
-                      </div>
-                      <p className={`mt-2 line-clamp-2 text-xs leading-5 ${selected ? 'text-stone-300' : 'text-stone-500'}`}>
-                        {group.statusCounts.map((item) => `${getStatusLabel(item.status)} ${item.count}`).join(' / ')}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </aside>
+            {shouldShowCollegeIndex && (
+              <aside className="flex min-h-0 flex-col overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                <div className="shrink-0 flex items-center gap-2 px-2 pb-3">
+                  <Building2 className="h-4 w-4 text-accent" />
+                  <h2 className="text-sm font-semibold text-stone-900">{t('collegeIndex')}</h2>
+                </div>
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                  {collegeGroups.map((group) => {
+                    const selected = selectedCollegeGroup?.id === group.id;
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => setSelectedCollegeId(group.id)}
+                        className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-semibold">{group.college}</span>
+                          <span className={`text-xs ${selected ? 'text-stone-300' : 'text-stone-400'}`}>{group.professors.length}</span>
+                        </div>
+                        <p className={`mt-2 line-clamp-2 text-xs leading-5 ${selected ? 'text-stone-300' : 'text-stone-500'}`}>
+                          {group.statusCounts.map((item) => `${getStatusLabel(item.status)} ${item.count}`).join(' / ')}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            )}
 
             <div className="min-h-0 overflow-y-auto pr-1">
               <div className="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm">
@@ -281,7 +290,7 @@ export function SchoolDirectoryPage({
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('school')} / {t('college')}</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-900">{selectedGroup?.school}</h2>
-                    {selectedCollegeGroup && <p className="mt-1 text-sm text-stone-500">{selectedCollegeGroup.college}</p>}
+                    {collegeTitle && <p className="mt-1 text-sm text-stone-500">{collegeTitle}</p>}
                   </div>
                   <div className="rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-500">
                     {t('recordCount', {
