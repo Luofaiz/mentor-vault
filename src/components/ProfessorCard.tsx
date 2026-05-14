@@ -50,19 +50,19 @@ export function ProfessorCard({
   return (
     <article className="group rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-stone-200/70">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{professor.title || t('professorFallback')}</p>
           <h3 className="mt-2 text-xl font-semibold tracking-tight text-stone-900">{professor.name}</h3>
           <p className="mt-1 text-sm text-stone-500">{professor.school || t('schoolNotSet')}</p>
           {professor.college && <p className="mt-1 text-sm text-stone-400">{professor.college}</p>}
         </div>
-        <span className={cn('rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]', STATUS_STYLES[professor.status] ?? CUSTOM_STATUS_STYLE)}>
+        <span className={cn('shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]', STATUS_STYLES[professor.status] ?? CUSTOM_STATUS_STYLE)}>
           {getStatusLabel(professor.status)}
         </span>
       </div>
 
-      <div className="mt-5 space-y-2 text-sm text-stone-600">
-        <p>{professor.researchArea || t('researchAreaNotSet')}</p>
+      <div className="mt-5 min-w-0 space-y-2 text-sm text-stone-600">
+        <p className="break-words">{professor.researchArea || t('researchAreaNotSet')}</p>
         <p className="truncate">{professor.email || t('emailNotSet')}</p>
         <p>{professor.firstContactDate ? t('firstContactOn', { date: professor.firstContactDate }) : t('noFirstContactDate')}</p>
         <p>{professor.lastContactDate ? t('lastContactOn', { date: professor.lastContactDate }) : t('noLastContactDate')}</p>
@@ -71,10 +71,10 @@ export function ProfessorCard({
             href={professor.homepage}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex max-w-full items-center gap-2 text-accent hover:underline"
+            className="flex min-w-0 max-w-full items-center gap-2 text-accent hover:underline"
           >
             <Globe className="h-4 w-4 shrink-0" />
-            <span className="truncate">{professor.homepage}</span>
+            <span className="min-w-0 flex-1 truncate">{professor.homepage}</span>
           </a>
         )}
       </div>

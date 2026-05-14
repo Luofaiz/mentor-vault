@@ -1,6 +1,6 @@
 {
-  "version": "0.2.9",
-  "notes": "GitHub 仓库改名为 mentor-vault，并同步更新程序内置更新地址和说明文档。",
+  "version": "0.2.10",
+  "notes": "修复导师卡片中主页链接过长时超出卡片边界的问题。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
