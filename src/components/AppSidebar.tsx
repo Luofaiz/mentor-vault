@@ -1,6 +1,7 @@
 import {
   BookOpenCheck,
   Building2,
+  FileText,
   Pause,
   Play,
   RefreshCw,
@@ -12,7 +13,7 @@ import { useI18n } from '../lib/i18n';
 import { cn } from '../lib/utils';
 import type { UpdateDownloadProgress } from '../lib/desktop';
 
-type View = 'contacts' | 'schools' | 'trash';
+type View = 'contacts' | 'schools' | 'notes' | 'trash';
 
 export interface Attachment {
   name: string;
@@ -83,6 +84,16 @@ export function AppSidebar({
         >
           <Building2 className="w-4 h-4" />
           <span className="font-medium">{t('schoolDirectory')}</span>
+        </button>
+        <button
+          onClick={() => onChangeView('notes')}
+          className={cn(
+            'w-full flex items-center space-x-3 rounded-2xl px-4 py-3 text-left transition-colors',
+            view === 'notes' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100',
+          )}
+        >
+          <FileText className="w-4 h-4" />
+          <span className="font-medium">{t('documentNotes')}</span>
         </button>
         <button
           onClick={() => onChangeView('trash')}

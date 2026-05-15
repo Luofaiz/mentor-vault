@@ -3,12 +3,13 @@ import { AppSidebar } from './components/AppSidebar';
 import { useProfessorDirectory } from './hooks/useProfessorDirectory';
 import { getDesktopApi, type UpdateDownloadProgress } from './lib/desktop';
 import { createTimelineEvent } from './lib/timeline';
+import { DocumentNotesPage } from './pages/DocumentNotesPage';
 import { ProfessorDirectoryPage } from './pages/ProfessorDirectoryPage';
 import { SchoolDirectoryPage } from './pages/SchoolDirectoryPage';
 import type { ProfessorDraft } from './types/professor';
 import type { TimelineEventDraft } from './types/timeline';
 
-type View = 'contacts' | 'schools' | 'trash';
+type View = 'contacts' | 'schools' | 'notes' | 'trash';
 
 const CONTACTED_STATUSES = new Set([
   'Contacted',
@@ -262,6 +263,8 @@ export default function App() {
             onTrashProfessor={professorDirectory.moveToTrash}
             onCreateTimelineEvent={handleCreateTimelineEvent}
           />
+        ) : view === 'notes' ? (
+          <DocumentNotesPage />
         ) : (
           <ProfessorDirectoryPage
             mode={view === 'contacts' ? 'active' : 'trash'}

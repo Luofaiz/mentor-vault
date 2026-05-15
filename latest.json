@@ -1,6 +1,6 @@
 {
-  "version": "0.2.17",
-  "notes": "将“导师资料”入口和页面标题统一改为“导师汇总”。",
+  "version": "0.2.18",
+  "notes": "新增文档笔记界面，支持本地创建、编辑、自动保存、删除笔记和导出 Markdown。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

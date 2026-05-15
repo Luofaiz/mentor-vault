@@ -3,6 +3,7 @@ import type { TimelineEvent, TimelineEventDraft } from '../types/timeline';
 import type { DraftTemplateInput, MailTemplate } from '../types/template';
 import type { MailDraft, MailDraftInput } from '../types/draft';
 import type { MailAccount, MailAccountInput, SendEmailPayload, SendLog } from '../types/mail';
+import type { DocumentNote, DocumentNoteInput } from '../types/note';
 import type { UserProfileSettings, UserProfileSettingsInput } from '../types/profile';
 import type {
   AIChatInput,
@@ -62,6 +63,11 @@ export interface VibeDesktopApi {
   drafts: {
     list: () => Promise<MailDraft[]>;
     save: (id: string | null, input: MailDraftInput) => Promise<MailDraft | null>;
+  };
+  notes: {
+    list: () => Promise<DocumentNote[]>;
+    save: (id: string | null, input: DocumentNoteInput) => Promise<DocumentNote | null>;
+    delete: (id: string) => Promise<void>;
   };
   mailAccounts: {
     list: () => Promise<MailAccount[]>;

@@ -10,7 +10,7 @@ import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const STORE_VERSION = 7;
+const STORE_VERSION = 8;
 const DESKTOP_DATA_DIRNAME = 'Mentor Vault';
 const LEGACY_DATA_DIRNAMES = ['Professor Tracker', 'Vibe Sender', 'vibe-sender'];
 const UPDATE_MANIFEST_ENV_KEYS = ['PROFESSOR_TRACKER_UPDATE_URL', 'UPDATE_MANIFEST_URL'];
@@ -705,6 +705,17 @@ function normalizeDraftRecord(draft) {
   };
 }
 
+function normalizeDocumentNoteRecord(note) {
+  const now = Date.now();
+  return {
+    id: String(note?.id ?? crypto.randomUUID()),
+    title: String(note?.title ?? '').trim(),
+    body: String(note?.body ?? ''),
+    createdAt: typeof note?.createdAt === 'number' ? note.createdAt : now,
+    updatedAt: typeof note?.updatedAt === 'number' ? note.updatedAt : now,
+  };
+}
+
 function normalizeMailAccountRecord(account) {
   if (!account || typeof account !== 'object') {
     return null;
@@ -826,6 +837,7 @@ function normalizeStore(rawStore) {
       : DEFAULT_TIMELINE_EVENTS,
     templates: Array.isArray(store.templates) ? sanitizeTemplateRecords(store.templates) : DEFAULT_TEMPLATES,
     drafts: Array.isArray(store.drafts) ? store.drafts.map((draft) => normalizeDraftRecord(draft)) : [],
+    notes: Array.isArray(store.notes) ? store.notes.map((note) => normalizeDocumentNoteRecord(note)) : [],
     mailAccounts: Array.isArray(store.mailAccounts)
       ? store.mailAccounts.map((account) => normalizeMailAccountRecord(account)).filter(Boolean)
       : [],
@@ -1513,6 +1525,37 @@ ipcMain.handle('drafts:save', async (_event, id, input) => {
   store.drafts.unshift(record);
   await saveStore(store);
   return record;
+});
+
+ipcMain.handle('notes:list', async () => {
+  const store = await ensureStore();
+  return store.notes.sort((left, right) => right.updatedAt - left.updatedAt);
+});
+
+ipcMain.handle('notes:save', async (_event, id, input) => {
+  const store = await ensureStore();
+  const now = Date.now();
+  const existing = id ? store.notes.find((note) => note.id === id) ?? null : null;
+  const normalized = normalizeDocumentNoteRecord({
+    ...existing,
+    id: existing?.id ?? id ?? crypto.randomUUID(),
+    title: input?.title,
+    body: input?.body,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  });
+
+  store.notes = existing
+    ? store.notes.map((note) => (note.id === existing.id ? normalized : note))
+    : [normalized, ...store.notes];
+  await saveStore(store);
+  return normalized;
+});
+
+ipcMain.handle('notes:delete', async (_event, id) => {
+  const store = await ensureStore();
+  store.notes = store.notes.filter((note) => note.id !== id);
+  await saveStore(store);
 });
 
 ipcMain.handle('mail-accounts:list', async () => {
