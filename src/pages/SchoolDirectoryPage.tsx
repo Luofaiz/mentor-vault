@@ -3,8 +3,10 @@ import { Building2, Check, PencilLine, Plus, Search, X } from 'lucide-react';
 import { ProfessorCard } from '../components/ProfessorCard';
 import { ProfessorFormDialog } from '../components/ProfessorFormDialog';
 import { ProfessorTimelineDrawer } from '../components/ProfessorTimelineDrawer';
+import { useListOrderPreferences } from '../hooks/useListOrderPreferences';
 import { useTimeline } from '../hooks/useTimeline';
 import { useI18n } from '../lib/i18n';
+import { moveKey, orderItems } from '../lib/listOrdering';
 import { PROFESSOR_STATUSES, type Professor, type ProfessorDraft, type ProfessorStatus } from '../types/professor';
 import type { TimelineEventDraft } from '../types/timeline';
 
@@ -31,6 +33,7 @@ export function SchoolDirectoryPage({
   onCreateTimelineEvent,
 }: SchoolDirectoryPageProps) {
   const { getStatusLabel, locale, t } = useI18n();
+  const { preferences, save: saveOrderPreferences } = useListOrderPreferences();
   const activeProfessors = useMemo(() => professors.filter((professor) => !professor.deletedAt), [professors]);
   const availableStatuses = useMemo(
     () =>
@@ -52,7 +55,7 @@ export function SchoolDirectoryPage({
       groups.set(school, [...(groups.get(school) ?? []), professor]);
     });
 
-    return Array.from(groups.entries())
+    const sortedGroups = Array.from(groups.entries())
       .map(([school, records]) => ({
         school,
         professors: records,
@@ -64,11 +67,15 @@ export function SchoolDirectoryPage({
           .filter((item) => item.count > 0),
       }))
       .sort((left, right) => right.professors.length - left.professors.length || left.school.localeCompare(right.school, locale === 'zh' ? 'zh-CN' : 'en-US'));
-  }, [activeProfessors, availableStatuses, locale, t]);
+
+    return orderItems(sortedGroups, preferences.schools, (group) => group.school);
+  }, [activeProfessors, availableStatuses, locale, preferences.schools, t]);
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
   const [selectedCollegeId, setSelectedCollegeId] = useState(ALL_COLLEGES_ID);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ProfessorStatus>('all');
+  const [draggedSchool, setDraggedSchool] = useState<string | null>(null);
+  const [draggedCollegeId, setDraggedCollegeId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProfessor, setEditingProfessor] = useState<Professor | null>(null);
   const [detailProfessor, setDetailProfessor] = useState<Professor | null>(null);
@@ -112,6 +119,11 @@ export function SchoolDirectoryPage({
           .filter((item) => item.count > 0),
       }))
       .sort((left, right) => right.professors.length - left.professors.length || left.college.localeCompare(right.college, locale === 'zh' ? 'zh-CN' : 'en-US'));
+    const orderedCollegeRecords = orderItems(
+      collegeRecords,
+      preferences.collegesBySchool[selectedGroup.school] ?? [],
+      (group) => group.id,
+    );
 
     return [
       {
@@ -120,9 +132,9 @@ export function SchoolDirectoryPage({
         professors: selectedGroup.professors,
         statusCounts: selectedGroup.statusCounts,
       },
-      ...collegeRecords,
+      ...orderedCollegeRecords,
     ];
-  }, [availableStatuses, locale, selectedGroup, t]);
+  }, [availableStatuses, locale, preferences.collegesBySchool, selectedGroup, t]);
   const actualCollegeGroups = collegeGroups.filter((group) => group.id !== ALL_COLLEGES_ID);
   const shouldShowCollegeIndex = actualCollegeGroups.length > 1;
   const selectedCollegeGroup = shouldShowCollegeIndex
@@ -230,6 +242,45 @@ export function SchoolDirectoryPage({
     }
   };
 
+  const handleDropSchool = async (targetSchool: string) => {
+    if (!draggedSchool || draggedSchool === targetSchool) {
+      setDraggedSchool(null);
+      return;
+    }
+
+    const currentOrder = schoolGroups.map((group) => group.school);
+    const nextSchools = moveKey(currentOrder, draggedSchool, targetSchool);
+    setDraggedSchool(null);
+    await saveOrderPreferences({
+      ...preferences,
+      schools: nextSchools,
+    });
+  };
+
+  const handleDropCollege = async (targetCollegeId: string) => {
+    if (!draggedCollegeId || draggedCollegeId === targetCollegeId || targetCollegeId === ALL_COLLEGES_ID) {
+      setDraggedCollegeId(null);
+      return;
+    }
+
+    const school = selectedGroup?.school;
+    if (!school) {
+      setDraggedCollegeId(null);
+      return;
+    }
+
+    const currentOrder = actualCollegeGroups.map((group) => group.id);
+    const nextCollegeIds = moveKey(currentOrder, draggedCollegeId, targetCollegeId);
+    setDraggedCollegeId(null);
+    await saveOrderPreferences({
+      ...preferences,
+      collegesBySchool: {
+        ...preferences.collegesBySchool,
+        [school]: nextCollegeIds,
+      },
+    });
+  };
+
   const handleSubmit = async (draft: ProfessorDraft, professorId?: string) => {
     const nextDraft = professorId || !selectedGroup
       ? draft
@@ -290,11 +341,26 @@ export function SchoolDirectoryPage({
                     <button
                       key={group.school}
                       type="button"
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggedSchool(group.school);
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/plain', group.school);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDragEnd={() => setDraggedSchool(null)}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        void handleDropSchool(group.school);
+                      }}
                       onClick={() => {
                         setSelectedSchool(group.school);
                         setSelectedCollegeId(ALL_COLLEGES_ID);
                       }}
-                      className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
+                      className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'} ${draggedSchool === group.school ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate text-sm font-semibold">{group.school}</span>
@@ -322,8 +388,28 @@ export function SchoolDirectoryPage({
                       <button
                         key={group.id}
                         type="button"
+                        draggable={group.id !== ALL_COLLEGES_ID}
+                        onDragStart={(event) => {
+                          if (group.id === ALL_COLLEGES_ID) {
+                            return;
+                          }
+                          setDraggedCollegeId(group.id);
+                          event.dataTransfer.effectAllowed = 'move';
+                          event.dataTransfer.setData('text/plain', group.id);
+                        }}
+                        onDragOver={(event) => {
+                          if (group.id !== ALL_COLLEGES_ID) {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = 'move';
+                          }
+                        }}
+                        onDragEnd={() => setDraggedCollegeId(null)}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          void handleDropCollege(group.id);
+                        }}
                         onClick={() => setSelectedCollegeId(group.id)}
-                        className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'}`}
+                        className={`w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors ${selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100'} ${draggedCollegeId === group.id ? 'opacity-50' : ''}`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate text-sm font-semibold">{group.college}</span>

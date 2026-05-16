@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { useDocumentNotes } from '../hooks/useDocumentNotes';
+import { useListOrderPreferences } from '../hooks/useListOrderPreferences';
 import { useI18n } from '../lib/i18n';
+import { moveKey, orderItems } from '../lib/listOrdering';
 import { cn } from '../lib/utils';
 import type { DocumentNote } from '../types/note';
 
@@ -65,25 +67,32 @@ function triggerMarkdownDownload(title: string, body: string) {
 export function DocumentNotesPage() {
   const { locale, t } = useI18n();
   const { notes, isLoading, error, save, remove } = useDocumentNotes();
+  const { preferences, save: saveOrderPreferences } = useListOrderPreferences();
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState<DocumentNote>(() => createFallbackNote());
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const lastSavedSnapshotRef = useRef('');
+
+  const orderedNotes = useMemo(
+    () => orderItems(notes, preferences.noteIds, (note) => note.id),
+    [notes, preferences.noteIds],
+  );
 
   const filteredNotes = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     if (!normalized) {
-      return notes;
+      return orderedNotes;
     }
 
-    return notes.filter((note) =>
+    return orderedNotes.filter((note) =>
       [note.title, note.body]
         .join(' ')
         .toLowerCase()
         .includes(normalized),
     );
-  }, [notes, search]);
+  }, [orderedNotes, search]);
 
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) ?? null,
@@ -95,8 +104,8 @@ export function DocumentNotesPage() {
       return;
     }
 
-    setSelectedNoteId(notes[0]?.id ?? null);
-  }, [notes, selectedNoteId]);
+      setSelectedNoteId(orderedNotes[0]?.id ?? null);
+  }, [notes, orderedNotes, selectedNoteId]);
 
   useEffect(() => {
     if (!selectedNote) {
@@ -175,6 +184,21 @@ export function DocumentNotesPage() {
     triggerMarkdownDownload(draft.title, draft.body);
   };
 
+  const handleDropNote = async (targetNoteId: string) => {
+    if (!draggedNoteId || draggedNoteId === targetNoteId || search.trim()) {
+      setDraggedNoteId(null);
+      return;
+    }
+
+    const currentOrder = orderedNotes.map((note) => note.id);
+    const nextNoteIds = moveKey(currentOrder, draggedNoteId, targetNoteId);
+    setDraggedNoteId(null);
+    await saveOrderPreferences({
+      ...preferences,
+      noteIds: nextNoteIds,
+    });
+  };
+
   const hasNotes = notes.length > 0;
 
   return (
@@ -250,10 +274,28 @@ export function DocumentNotesPage() {
                       <button
                         key={note.id}
                         type="button"
+                        draggable={!search.trim()}
+                        onDragStart={(event) => {
+                          setDraggedNoteId(note.id);
+                          event.dataTransfer.effectAllowed = 'move';
+                          event.dataTransfer.setData('text/plain', note.id);
+                        }}
+                        onDragOver={(event) => {
+                          if (!search.trim()) {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = 'move';
+                          }
+                        }}
+                        onDragEnd={() => setDraggedNoteId(null)}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          void handleDropNote(note.id);
+                        }}
                         onClick={() => setSelectedNoteId(note.id)}
                         className={cn(
                           'w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors',
                           selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100',
+                          draggedNoteId === note.id && 'opacity-50',
                         )}
                       >
                         <div className="flex items-center justify-between gap-3">

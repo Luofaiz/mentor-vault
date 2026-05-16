@@ -4,6 +4,7 @@ import type { DraftTemplateInput, MailTemplate } from '../types/template';
 import type { MailDraft, MailDraftInput } from '../types/draft';
 import type { MailAccount, MailAccountInput, SendEmailPayload, SendLog } from '../types/mail';
 import type { DocumentNote, DocumentNoteInput } from '../types/note';
+import type { ListOrderPreferences } from '../types/listOrderPreferences';
 import type { UserProfileSettings, UserProfileSettingsInput } from '../types/profile';
 import type {
   AIChatInput,
@@ -68,6 +69,10 @@ export interface VibeDesktopApi {
     list: () => Promise<DocumentNote[]>;
     save: (id: string | null, input: DocumentNoteInput) => Promise<DocumentNote | null>;
     delete: (id: string) => Promise<void>;
+  };
+  listOrderPreferences: {
+    get: () => Promise<ListOrderPreferences>;
+    save: (input: ListOrderPreferences) => Promise<ListOrderPreferences>;
   };
   mailAccounts: {
     list: () => Promise<MailAccount[]>;

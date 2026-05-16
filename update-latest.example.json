@@ -1,6 +1,6 @@
 {
-  "version": "0.2.18",
-  "notes": "新增文档笔记界面，支持本地创建、编辑、自动保存、删除笔记和导出 Markdown。",
+  "version": "0.2.19",
+  "notes": "笔记索引、院校索引和学院索引支持手动拖拽调整顺序，并会保存本地顺序偏好。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

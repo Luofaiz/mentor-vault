@@ -10,7 +10,7 @@ import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const STORE_VERSION = 8;
+const STORE_VERSION = 9;
 const DESKTOP_DATA_DIRNAME = 'Mentor Vault';
 const LEGACY_DATA_DIRNAMES = ['Professor Tracker', 'Vibe Sender', 'vibe-sender'];
 const UPDATE_MANIFEST_ENV_KEYS = ['PROFESSOR_TRACKER_UPDATE_URL', 'UPDATE_MANIFEST_URL'];
@@ -768,6 +768,32 @@ function normalizeSendLogRecord(log) {
   };
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(new Set(value.map((item) => String(item ?? '').trim()).filter(Boolean)));
+}
+
+function normalizeListOrderPreferences(value) {
+  const input = value && typeof value === 'object' ? value : {};
+  const collegesBySchool =
+    input.collegesBySchool && typeof input.collegesBySchool === 'object'
+      ? Object.fromEntries(
+          Object.entries(input.collegesBySchool)
+            .map(([school, colleges]) => [String(school ?? '').trim(), normalizeStringArray(colleges)])
+            .filter(([school]) => school),
+        )
+      : {};
+
+  return {
+    noteIds: normalizeStringArray(input.noteIds),
+    schools: normalizeStringArray(input.schools),
+    collegesBySchool,
+  };
+}
+
 function normalizeAiConfigRecord(config) {
   if (!config || typeof config !== 'object') {
     return null;
@@ -838,6 +864,7 @@ function normalizeStore(rawStore) {
     templates: Array.isArray(store.templates) ? sanitizeTemplateRecords(store.templates) : DEFAULT_TEMPLATES,
     drafts: Array.isArray(store.drafts) ? store.drafts.map((draft) => normalizeDraftRecord(draft)) : [],
     notes: Array.isArray(store.notes) ? store.notes.map((note) => normalizeDocumentNoteRecord(note)) : [],
+    listOrderPreferences: normalizeListOrderPreferences(store.listOrderPreferences),
     mailAccounts: Array.isArray(store.mailAccounts)
       ? store.mailAccounts.map((account) => normalizeMailAccountRecord(account)).filter(Boolean)
       : [],
@@ -1555,7 +1582,20 @@ ipcMain.handle('notes:save', async (_event, id, input) => {
 ipcMain.handle('notes:delete', async (_event, id) => {
   const store = await ensureStore();
   store.notes = store.notes.filter((note) => note.id !== id);
+  store.listOrderPreferences.noteIds = store.listOrderPreferences.noteIds.filter((noteId) => noteId !== id);
   await saveStore(store);
+});
+
+ipcMain.handle('list-order-preferences:get', async () => {
+  const store = await ensureStore();
+  return store.listOrderPreferences;
+});
+
+ipcMain.handle('list-order-preferences:save', async (_event, input) => {
+  const store = await ensureStore();
+  store.listOrderPreferences = normalizeListOrderPreferences(input);
+  await saveStore(store);
+  return store.listOrderPreferences;
 });
 
 ipcMain.handle('mail-accounts:list', async () => {

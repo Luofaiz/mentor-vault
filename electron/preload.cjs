@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld('vibe', {
     save: (id, input) => ipcRenderer.invoke('notes:save', id, input),
     delete: (id) => ipcRenderer.invoke('notes:delete', id),
   },
+  listOrderPreferences: {
+    get: () => ipcRenderer.invoke('list-order-preferences:get'),
+    save: (input) => ipcRenderer.invoke('list-order-preferences:save', input),
+  },
   mailAccounts: {
     list: () => ipcRenderer.invoke('mail-accounts:list'),
     save: (id, input) => ipcRenderer.invoke('mail-accounts:save', id, input),
