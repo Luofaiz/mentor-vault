@@ -1,6 +1,6 @@
 {
-  "version": "0.2.31",
-  "notes": "优化更新按钮样式。",
+  "version": "0.2.32",
+  "notes": "移除笔记预览区域。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

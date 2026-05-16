@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Check, Eye, FileStack, Paperclip, RefreshCcw, Save, Send, X } from 'lucide-react';
 import { MailPreviewDialog } from '../components/MailPreviewDialog';
 import { PreviewSendDialog } from '../components/PreviewSendDialog';
@@ -157,8 +157,8 @@ export function EditorPage({
     setTemplatePickerOpen(false);
   };
 
-  const handleUploadMailAttachments = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
+  const handleUploadMailAttachments = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from<File>(event.target.files ?? []);
     if (files.length === 0) {
       return;
     }

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Download, FileImage, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { useDocumentNotes } from '../hooks/useDocumentNotes';
 import { useListOrderPreferences } from '../hooks/useListOrderPreferences';
@@ -110,7 +109,7 @@ export function DocumentNotesPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSavedSnapshotRef = useRef('');
 
-  const orderedNotes = useMemo(
+  const orderedNotes = useMemo<DocumentNote[]>(
     () => orderItems(notes, preferences.noteIds, (note) => note.id),
     [notes, preferences.noteIds],
   );
@@ -265,7 +264,7 @@ export function DocumentNotesPage() {
   };
 
   const handlePasteNoteBody = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const imageFile = Array.from(event.clipboardData.files).find((file) => file.type.startsWith('image/'));
+    const imageFile = Array.from<File>(event.clipboardData.files).find((file) => file.type.startsWith('image/'));
     if (!imageFile) {
       return;
     }
@@ -434,6 +433,7 @@ export function DocumentNotesPage() {
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-stone-400">
                       <span>{saveState === 'saving' ? t('saving') : saveState === 'saved' ? t('noteSaved') : t('editingNote')}</span>
                       {selectedNote && <span>{t('lastUpdatedAt', { time: formatUpdatedAt(selectedNote.updatedAt, locale) })}</span>}
+                      {insertImageStatus === 'error' && <span className="text-rose-500">{t('insertImageFailed')}</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -478,23 +478,8 @@ export function DocumentNotesPage() {
                 onPaste={handlePasteNoteBody}
                 placeholder={t('noteBodyPlaceholder')}
                 ref={textareaRef}
-                className="min-h-[12rem] resize-none border-b border-stone-100 bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none placeholder:text-stone-300 lg:min-h-0 lg:flex-1"
+                className="min-h-0 flex-1 resize-none overflow-y-auto bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none placeholder:text-stone-300"
               />
-              <div className="min-h-[12rem] overflow-y-auto bg-stone-50 px-6 py-6 lg:max-h-[42%]">
-                <div className="mb-3 flex items-center justify-between gap-3 text-xs text-stone-400">
-                  <span>{t('notePreview')}</span>
-                  {insertImageStatus === 'error' && <span className="text-rose-500">{t('insertImageFailed')}</span>}
-                </div>
-                {draft.body.trim() ? (
-                  <div className="note-preview rounded-[1.5rem] border border-stone-200 bg-white px-5 py-5 text-sm leading-7 text-stone-700">
-                    <ReactMarkdown urlTransform={(url) => url}>{draft.body}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="rounded-[1.5rem] border border-dashed border-stone-200 bg-white px-5 py-8 text-center text-sm text-stone-400">
-                    {t('emptyNotePreview')}
-                  </div>
-                )}
-              </div>
             </section>
           </div>
         )}
