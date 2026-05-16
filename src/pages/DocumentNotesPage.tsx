@@ -10,6 +10,9 @@ import type { DocumentNote } from '../types/note';
 type DropPosition = 'before' | 'after';
 type InsertImageStatus = 'idle' | 'loading' | 'error';
 
+const MARKDOWN_IMAGE_PATTERN = /!\[([^\]]*)\]\((data:image\/[^)\s]+|https?:\/\/[^)\s]+|blob:[^)]+|file:[^)]+)\)/g;
+const BLOCK_TAGS = new Set(['DIV', 'P', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+
 function getDropPosition(event: DragEvent<HTMLElement>): DropPosition {
   const rect = event.currentTarget.getBoundingClientRect();
   return event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
@@ -43,7 +46,7 @@ function formatUpdatedAt(value: number, locale: string) {
 }
 
 function getExcerpt(body: string) {
-  return body.replace(/\s+/g, ' ').trim();
+  return body.replace(MARKDOWN_IMAGE_PATTERN, '[image]').replace(/\s+/g, ' ').trim();
 }
 
 function sanitizeMarkdownFilename(value: string) {
@@ -88,10 +91,115 @@ function readImageFileAsDataUrl(file: File) {
 }
 
 function getImageAltText(file: File) {
-  return file.name
-    .replace(/\.[^.]+$/, '')
-    .replace(/[[\]()]/g, '')
-    .trim() || '图片';
+  return sanitizeMarkdownImageAlt(file.name.replace(/\.[^.]+$/, ''));
+}
+
+function sanitizeMarkdownImageAlt(value: string) {
+  return value.replace(/[[\]()\r\n]/g, '').trim() || 'image';
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return character;
+    }
+  });
+}
+
+function renderMarkdownLine(line: string) {
+  let html = '';
+  let lastIndex = 0;
+  MARKDOWN_IMAGE_PATTERN.lastIndex = 0;
+
+  for (const match of line.matchAll(MARKDOWN_IMAGE_PATTERN)) {
+    const index = match.index ?? 0;
+    html += escapeHtml(line.slice(lastIndex, index));
+    html += `<img src="${escapeHtml(match[2])}" alt="${escapeHtml(sanitizeMarkdownImageAlt(match[1]))}" data-note-image="true">`;
+    lastIndex = index + match[0].length;
+  }
+
+  html += escapeHtml(line.slice(lastIndex));
+  return html || '<br>';
+}
+
+function markdownToEditorHtml(body: string) {
+  if (!body) {
+    return '';
+  }
+
+  return body
+    .split('\n')
+    .map((line) => `<div>${renderMarkdownLine(line)}</div>`)
+    .join('');
+}
+
+function isElementNode(node: Node): node is HTMLElement {
+  return node.nodeType === Node.ELEMENT_NODE;
+}
+
+function nodeToMarkdown(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.replace(/\u00a0/g, ' ') ?? '';
+  }
+
+  if (!isElementNode(node)) {
+    return '';
+  }
+
+  if (node.tagName === 'IMG') {
+    const src = node.getAttribute('src') ?? '';
+    if (!src) {
+      return '';
+    }
+    return `![${sanitizeMarkdownImageAlt(node.getAttribute('alt') ?? 'image')}](${src})`;
+  }
+
+  if (node.tagName === 'BR') {
+    return '\n';
+  }
+
+  return Array.from(node.childNodes).map(nodeToMarkdown).join('');
+}
+
+function editorToMarkdown(editor: HTMLElement) {
+  const lines: string[] = [];
+  let pendingLine = '';
+
+  Array.from(editor.childNodes).forEach((node) => {
+    if (isElementNode(node) && BLOCK_TAGS.has(node.tagName)) {
+      if (pendingLine) {
+        lines.push(pendingLine);
+        pendingLine = '';
+      }
+      lines.push(nodeToMarkdown(node).replace(/\n+$/g, ''));
+      return;
+    }
+
+    if (isElementNode(node) && node.tagName === 'BR') {
+      lines.push(pendingLine);
+      pendingLine = '';
+      return;
+    }
+
+    pendingLine += nodeToMarkdown(node);
+  });
+
+  if (pendingLine || lines.length === 0) {
+    lines.push(pendingLine);
+  }
+
+  return lines.join('\n').replace(/\u00a0/g, ' ');
 }
 
 export function DocumentNotesPage() {
@@ -106,8 +214,10 @@ export function DocumentNotesPage() {
   const [noteDropTarget, setNoteDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
   const [insertImageStatus, setInsertImageStatus] = useState<InsertImageStatus>('idle');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const lastSavedSnapshotRef = useRef('');
+  const lastEditorBodyRef = useRef('');
+  const savedEditorSelectionRef = useRef<Range | null>(null);
 
   const orderedNotes = useMemo<DocumentNote[]>(
     () => orderItems(notes, preferences.noteIds, (note) => note.id),
@@ -145,17 +255,29 @@ export function DocumentNotesPage() {
     if (!selectedNote) {
       setDraft(createFallbackNote());
       lastSavedSnapshotRef.current = '';
+      lastEditorBodyRef.current = '';
       setSaveState('idle');
       return;
     }
 
     setDraft(selectedNote);
+    lastEditorBodyRef.current = '';
     lastSavedSnapshotRef.current = JSON.stringify({
       title: selectedNote.title,
       body: selectedNote.body,
     });
     setSaveState('saved');
   }, [selectedNote]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || draft.body === lastEditorBodyRef.current) {
+      return;
+    }
+
+    editor.innerHTML = markdownToEditorHtml(draft.body);
+    lastEditorBodyRef.current = draft.body;
+  }, [draft.body, selectedNoteId]);
 
   useEffect(() => {
     if (!selectedNoteId) {
@@ -218,26 +340,82 @@ export function DocumentNotesPage() {
     triggerMarkdownDownload(draft.title, draft.body);
   };
 
-  const insertMarkdownAtCursor = (markdown: string) => {
-    const textarea = textareaRef.current;
-    const start = textarea?.selectionStart ?? draft.body.length;
-    const end = textarea?.selectionEnd ?? draft.body.length;
-    const prefix = draft.body.slice(0, start);
-    const suffix = draft.body.slice(end);
-    const needsLeadingBreak = prefix.length > 0 && !prefix.endsWith('\n');
-    const needsTrailingBreak = suffix.length > 0 && !suffix.startsWith('\n');
-    const insertion = `${needsLeadingBreak ? '\n\n' : ''}${markdown}${needsTrailingBreak ? '\n\n' : ''}`;
-    const nextCursor = start + insertion.length;
+  const saveEditorSelection = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) {
+      return;
+    }
 
-    setDraft((current) => ({
-      ...current,
-      body: `${current.body.slice(0, start)}${insertion}${current.body.slice(end)}`,
-    }));
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      savedEditorSelectionRef.current = range.cloneRange();
+    }
+  };
 
-    window.requestAnimationFrame(() => {
-      textarea?.focus();
-      textarea?.setSelectionRange(nextCursor, nextCursor);
-    });
+  const restoreEditorSelection = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection) {
+      return;
+    }
+
+    selection.removeAllRanges();
+    const savedRange = savedEditorSelectionRef.current;
+    if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+      selection.addRange(savedRange);
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    selection.addRange(range);
+  };
+
+  const updateDraftBodyFromEditor = () => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const nextBody = editorToMarkdown(editor);
+    lastEditorBodyRef.current = nextBody;
+    setDraft((current) => (current.body === nextBody ? current : { ...current, body: nextBody }));
+  };
+
+  const insertImageAtCursor = (src: string, alt: string) => {
+    const editor = editorRef.current;
+    if (!editor) {
+      const markdown = `![${sanitizeMarkdownImageAlt(alt)}](${src})`;
+      setDraft((current) => ({
+        ...current,
+        body: current.body ? `${current.body}\n\n${markdown}` : markdown,
+      }));
+      return;
+    }
+
+    editor.focus();
+    restoreEditorSelection();
+    document.execCommand(
+      'insertHTML',
+      false,
+      `<div><img src="${escapeHtml(src)}" alt="${escapeHtml(sanitizeMarkdownImageAlt(alt))}" data-note-image="true"></div><div><br></div>`,
+    );
+    updateDraftBodyFromEditor();
+    saveEditorSelection();
+  };
+
+  const insertPlainTextAtCursor = (text: string) => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    restoreEditorSelection();
+    document.execCommand('insertText', false, text);
+    updateDraftBodyFromEditor();
+    saveEditorSelection();
   };
 
   const insertImageFile = async (file: File) => {
@@ -248,7 +426,7 @@ export function DocumentNotesPage() {
     setInsertImageStatus('loading');
     try {
       const dataUrl = await readImageFileAsDataUrl(file);
-      insertMarkdownAtCursor(`![${getImageAltText(file)}](${dataUrl})`);
+      insertImageAtCursor(dataUrl, getImageAltText(file));
       setInsertImageStatus('idle');
     } catch {
       setInsertImageStatus('error');
@@ -263,14 +441,15 @@ export function DocumentNotesPage() {
     }
   };
 
-  const handlePasteNoteBody = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+  const handlePasteNoteBody = (event: ClipboardEvent<HTMLDivElement>) => {
     const imageFile = Array.from<File>(event.clipboardData.files).find((file) => file.type.startsWith('image/'));
-    if (!imageFile) {
+    event.preventDefault();
+    if (imageFile) {
+      void insertImageFile(imageFile);
       return;
     }
 
-    event.preventDefault();
-    void insertImageFile(imageFile);
+    insertPlainTextAtCursor(event.clipboardData.getData('text/plain'));
   };
 
   const handleDropNote = async (targetNoteId: string, position: DropPosition) => {
@@ -439,6 +618,7 @@ export function DocumentNotesPage() {
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                       type="button"
+                      onMouseDown={saveEditorSelection}
                       onClick={() => fileInputRef.current?.click()}
                       className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
                     >
@@ -472,13 +652,20 @@ export function DocumentNotesPage() {
                 </div>
               </div>
 
-              <textarea
-                value={draft.body}
-                onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
+              <div
+                aria-multiline="true"
+                className="note-rich-editor min-h-0 flex-1 overflow-y-auto bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none"
+                contentEditable
+                data-placeholder={t('noteBodyPlaceholder')}
+                onFocus={saveEditorSelection}
+                onInput={updateDraftBodyFromEditor}
+                onKeyUp={saveEditorSelection}
+                onMouseUp={saveEditorSelection}
                 onPaste={handlePasteNoteBody}
-                placeholder={t('noteBodyPlaceholder')}
-                ref={textareaRef}
-                className="min-h-0 flex-1 resize-none overflow-y-auto bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none placeholder:text-stone-300"
+                ref={editorRef}
+                role="textbox"
+                suppressContentEditableWarning
+                tabIndex={0}
               />
             </section>
           </div>

@@ -1,6 +1,6 @@
 {
-  "version": "0.2.32",
-  "notes": "移除笔记预览区域。",
+  "version": "0.2.33",
+  "notes": "优化笔记图片显示体验。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],

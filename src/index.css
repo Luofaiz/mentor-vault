@@ -32,3 +32,20 @@
 .glass-panel {
   @apply bg-white/80 backdrop-blur-md border border-gray-200/50 shadow-sm;
 }
+
+.note-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  @apply pointer-events-none text-stone-300;
+}
+
+.note-rich-editor div {
+  min-height: 2rem;
+}
+
+.note-rich-editor img {
+  @apply my-3 max-h-[30rem] max-w-full rounded-2xl border border-stone-200 object-contain;
+}
+
+.note-rich-editor [data-note-image="true"] {
+  display: block;
+}
