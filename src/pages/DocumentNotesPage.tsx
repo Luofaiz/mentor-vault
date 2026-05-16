@@ -272,7 +272,7 @@ export function DocumentNotesPage() {
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-1 pr-1">
                 {filteredNotes.length === 0 ? (
                   <p className="px-3 py-6 text-center text-sm text-stone-400">{t('noNotesMatch')}</p>
                 ) : (

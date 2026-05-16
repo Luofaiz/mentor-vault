@@ -1,6 +1,6 @@
 {
-  "version": "0.2.28",
-  "notes": "优化拖拽排序落点提示。",
+  "version": "0.2.29",
+  "notes": "修复首位拖拽落点显示。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

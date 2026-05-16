@@ -348,7 +348,7 @@ export function SchoolDirectoryPage({
                 <Building2 className="h-4 w-4 text-accent" />
                 <h2 className="text-sm font-semibold text-stone-900">{t('schoolIndex')}</h2>
               </div>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-1 pr-1">
                 {schoolGroups.map((group) => {
                   const selected = selectedGroup?.school === group.school;
                   return (
@@ -410,7 +410,7 @@ export function SchoolDirectoryPage({
                   <Building2 className="h-4 w-4 text-accent" />
                   <h2 className="text-sm font-semibold text-stone-900">{t('collegeIndex')}</h2>
                 </div>
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-1 pr-1">
                   {collegeGroups.map((group) => {
                     const selected = selectedCollegeGroup?.id === group.id;
                     return (
