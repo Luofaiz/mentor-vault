@@ -30,7 +30,13 @@ https://github.com/Luofaiz/mentor-vault/releases/latest
 
 ## 数据位置
 
-用户数据保存在系统应用数据目录下的 `Mentor Vault` 文件夹中。卸载或安装新版本不会主动删除用户数据。
+用户数据保存在 Windows 的 `%APPDATA%\Mentor Vault` 文件夹中，通常对应：
+
+```text
+C:\Users\你的用户名\AppData\Roaming\Mentor Vault
+```
+
+主要数据文件是 `vibe-data.json`。卸载或安装新版本不会主动删除用户数据。
 
 ## 致谢
 
