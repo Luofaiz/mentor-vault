@@ -1,6 +1,6 @@
 {
-  "version": "0.2.24",
-  "notes": "优化安装包体积，移除未使用语言包和部分冗余运行时文件。",
+  "version": "0.2.25",
+  "notes": "修复 v0.2.24 因缺少 fs-extra 运行时依赖导致启动报错的问题。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
