@@ -1,6 +1,6 @@
 {
-  "version": "0.2.30",
-  "notes": "笔记支持插入图片。",
+  "version": "0.2.31",
+  "notes": "优化更新按钮样式。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],

@@ -185,7 +185,7 @@ export function AppSidebar({
                       type="button"
                       onClick={onDownloadFullUpdate}
                       className={cn(
-                        'inline-flex h-9 items-center justify-center rounded-xl bg-rose-800 px-3 text-xs font-semibold leading-none text-white shadow-sm shadow-rose-900/10 transition-colors hover:bg-rose-900',
+                        'inline-flex h-9 items-center justify-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-medium leading-none text-stone-700 transition-colors hover:bg-stone-100',
                         !availableUpdate.canInstallDifferential && 'col-span-2',
                       )}
                     >
