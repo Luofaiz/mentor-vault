@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
-import { Download, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Download, FileImage, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { useDocumentNotes } from '../hooks/useDocumentNotes';
 import { useListOrderPreferences } from '../hooks/useListOrderPreferences';
 import { useI18n } from '../lib/i18n';
@@ -8,6 +9,7 @@ import { cn } from '../lib/utils';
 import type { DocumentNote } from '../types/note';
 
 type DropPosition = 'before' | 'after';
+type InsertImageStatus = 'idle' | 'loading' | 'error';
 
 function getDropPosition(event: DragEvent<HTMLElement>): DropPosition {
   const rect = event.currentTarget.getBoundingClientRect();
@@ -71,6 +73,28 @@ function triggerMarkdownDownload(title: string, body: string) {
   window.setTimeout(() => window.URL.revokeObjectURL(url), 0);
 }
 
+function readImageFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Invalid image data.'));
+    });
+    reader.addEventListener('error', () => reject(reader.error ?? new Error('Failed to read image.')));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getImageAltText(file: File) {
+  return file.name
+    .replace(/\.[^.]+$/, '')
+    .replace(/[[\]()]/g, '')
+    .trim() || '图片';
+}
+
 export function DocumentNotesPage() {
   const { locale, t } = useI18n();
   const { notes, isLoading, error, save, remove } = useDocumentNotes();
@@ -81,6 +105,9 @@ export function DocumentNotesPage() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [noteDropTarget, setNoteDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
+  const [insertImageStatus, setInsertImageStatus] = useState<InsertImageStatus>('idle');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSavedSnapshotRef = useRef('');
 
   const orderedNotes = useMemo(
@@ -190,6 +217,61 @@ export function DocumentNotesPage() {
 
   const handleExportMarkdown = () => {
     triggerMarkdownDownload(draft.title, draft.body);
+  };
+
+  const insertMarkdownAtCursor = (markdown: string) => {
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? draft.body.length;
+    const end = textarea?.selectionEnd ?? draft.body.length;
+    const prefix = draft.body.slice(0, start);
+    const suffix = draft.body.slice(end);
+    const needsLeadingBreak = prefix.length > 0 && !prefix.endsWith('\n');
+    const needsTrailingBreak = suffix.length > 0 && !suffix.startsWith('\n');
+    const insertion = `${needsLeadingBreak ? '\n\n' : ''}${markdown}${needsTrailingBreak ? '\n\n' : ''}`;
+    const nextCursor = start + insertion.length;
+
+    setDraft((current) => ({
+      ...current,
+      body: `${current.body.slice(0, start)}${insertion}${current.body.slice(end)}`,
+    }));
+
+    window.requestAnimationFrame(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(nextCursor, nextCursor);
+    });
+  };
+
+  const insertImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    setInsertImageStatus('loading');
+    try {
+      const dataUrl = await readImageFileAsDataUrl(file);
+      insertMarkdownAtCursor(`![${getImageAltText(file)}](${dataUrl})`);
+      setInsertImageStatus('idle');
+    } catch {
+      setInsertImageStatus('error');
+    }
+  };
+
+  const handleImageInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) {
+      void insertImageFile(file);
+    }
+  };
+
+  const handlePasteNoteBody = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const imageFile = Array.from(event.clipboardData.files).find((file) => file.type.startsWith('image/'));
+    if (!imageFile) {
+      return;
+    }
+
+    event.preventDefault();
+    void insertImageFile(imageFile);
   };
 
   const handleDropNote = async (targetNoteId: string, position: DropPosition) => {
@@ -357,6 +439,21 @@ export function DocumentNotesPage() {
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
+                    >
+                      <FileImage className="h-4 w-4" />
+                      <span>{insertImageStatus === 'loading' ? t('insertingImage') : t('insertImage')}</span>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageInputChange}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
                       onClick={handleExportMarkdown}
                       className="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
                     >
@@ -378,9 +475,26 @@ export function DocumentNotesPage() {
               <textarea
                 value={draft.body}
                 onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
+                onPaste={handlePasteNoteBody}
                 placeholder={t('noteBodyPlaceholder')}
-                className="min-h-0 flex-1 resize-none overflow-y-auto bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none placeholder:text-stone-300"
+                ref={textareaRef}
+                className="min-h-[12rem] resize-none border-b border-stone-100 bg-white px-6 py-6 font-sans text-base leading-8 text-stone-700 outline-none placeholder:text-stone-300 lg:min-h-0 lg:flex-1"
               />
+              <div className="min-h-[12rem] overflow-y-auto bg-stone-50 px-6 py-6 lg:max-h-[42%]">
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs text-stone-400">
+                  <span>{t('notePreview')}</span>
+                  {insertImageStatus === 'error' && <span className="text-rose-500">{t('insertImageFailed')}</span>}
+                </div>
+                {draft.body.trim() ? (
+                  <div className="note-preview rounded-[1.5rem] border border-stone-200 bg-white px-5 py-5 text-sm leading-7 text-stone-700">
+                    <ReactMarkdown urlTransform={(url) => url}>{draft.body}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-stone-200 bg-white px-5 py-8 text-center text-sm text-stone-400">
+                    {t('emptyNotePreview')}
+                  </div>
+                )}
+              </div>
             </section>
           </div>
         )}

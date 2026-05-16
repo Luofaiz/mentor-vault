@@ -1,6 +1,6 @@
 {
-  "version": "0.2.29",
-  "notes": "修复首位拖拽落点显示。",
+  "version": "0.2.30",
+  "notes": "笔记支持插入图片。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
