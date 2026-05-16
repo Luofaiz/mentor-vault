@@ -33,3 +33,25 @@ export function moveKey(keys: string[], sourceKey: string, targetKey: string) {
   nextKeys.splice(targetIndex, 0, movedKey);
   return nextKeys;
 }
+
+export function moveKeyToDropPosition(keys: string[], sourceKey: string, targetKey: string, position: 'before' | 'after') {
+  if (sourceKey === targetKey) {
+    return keys;
+  }
+
+  const sourceIndex = keys.indexOf(sourceKey);
+  const targetIndex = keys.indexOf(targetKey);
+  if (sourceIndex < 0 || targetIndex < 0) {
+    return keys;
+  }
+
+  const nextKeys = [...keys];
+  const [movedKey] = nextKeys.splice(sourceIndex, 1);
+  const targetIndexAfterRemoval = nextKeys.indexOf(targetKey);
+  if (targetIndexAfterRemoval < 0) {
+    return keys;
+  }
+
+  nextKeys.splice(position === 'after' ? targetIndexAfterRemoval + 1 : targetIndexAfterRemoval, 0, movedKey);
+  return nextKeys;
+}

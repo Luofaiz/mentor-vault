@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Download, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { useDocumentNotes } from '../hooks/useDocumentNotes';
 import { useListOrderPreferences } from '../hooks/useListOrderPreferences';
 import { useI18n } from '../lib/i18n';
-import { moveKey, orderItems } from '../lib/listOrdering';
+import { moveKeyToDropPosition, orderItems } from '../lib/listOrdering';
 import { cn } from '../lib/utils';
 import type { DocumentNote } from '../types/note';
+
+type DropPosition = 'before' | 'after';
+
+function getDropPosition(event: DragEvent<HTMLElement>): DropPosition {
+  const rect = event.currentTarget.getBoundingClientRect();
+  return event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+}
 
 function createFallbackNote(): DocumentNote {
   const now = Date.now();
@@ -73,6 +80,7 @@ export function DocumentNotesPage() {
   const [draft, setDraft] = useState<DocumentNote>(() => createFallbackNote());
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
+  const [noteDropTarget, setNoteDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
   const lastSavedSnapshotRef = useRef('');
 
   const orderedNotes = useMemo(
@@ -184,15 +192,17 @@ export function DocumentNotesPage() {
     triggerMarkdownDownload(draft.title, draft.body);
   };
 
-  const handleDropNote = async (targetNoteId: string) => {
+  const handleDropNote = async (targetNoteId: string, position: DropPosition) => {
     if (!draggedNoteId || draggedNoteId === targetNoteId || search.trim()) {
       setDraggedNoteId(null);
+      setNoteDropTarget(null);
       return;
     }
 
     const currentOrder = orderedNotes.map((note) => note.id);
-    const nextNoteIds = moveKey(currentOrder, draggedNoteId, targetNoteId);
+    const nextNoteIds = moveKeyToDropPosition(currentOrder, draggedNoteId, targetNoteId, position);
     setDraggedNoteId(null);
+    setNoteDropTarget(null);
     await saveOrderPreferences({
       ...preferences,
       noteIds: nextNoteIds,
@@ -284,20 +294,35 @@ export function DocumentNotesPage() {
                           if (!search.trim()) {
                             event.preventDefault();
                             event.dataTransfer.dropEffect = 'move';
+                            setNoteDropTarget({ id: note.id, position: getDropPosition(event) });
                           }
                         }}
-                        onDragEnd={() => setDraggedNoteId(null)}
+                        onDragLeave={() => {
+                          setNoteDropTarget((current) => (current?.id === note.id ? null : current));
+                        }}
+                        onDragEnd={() => {
+                          setDraggedNoteId(null);
+                          setNoteDropTarget(null);
+                        }}
                         onDrop={(event) => {
                           event.preventDefault();
-                          void handleDropNote(note.id);
+                          void handleDropNote(note.id, getDropPosition(event));
                         }}
                         onClick={() => setSelectedNoteId(note.id)}
                         className={cn(
-                          'w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors',
+                          'relative w-full rounded-[1.25rem] px-4 py-3 text-left transition-colors',
                           selected ? 'bg-stone-900 text-white' : 'bg-stone-50 text-stone-700 hover:bg-stone-100',
                           draggedNoteId === note.id && 'opacity-50',
                         )}
                       >
+                        {noteDropTarget?.id === note.id && draggedNoteId !== note.id && (
+                          <span
+                            className={cn(
+                              'pointer-events-none absolute left-4 right-4 z-10 h-0.5 rounded-full bg-accent shadow-sm shadow-accent/30',
+                              noteDropTarget.position === 'before' ? '-top-1' : '-bottom-1',
+                            )}
+                          />
+                        )}
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate text-sm font-semibold">{title}</span>
                           <span className={cn('shrink-0 text-[11px]', selected ? 'text-stone-300' : 'text-stone-400')}>
