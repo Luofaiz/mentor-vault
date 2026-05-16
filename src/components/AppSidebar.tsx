@@ -78,8 +78,8 @@ export function AppSidebar({
 
   return (
     <aside className="h-screen w-72 shrink-0 overflow-hidden border-r border-stone-200 bg-white/70 flex flex-col p-5 space-y-6 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-3 px-2">
-        <div className="flex min-w-0 items-center space-x-3">
+      <div className="px-2">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-ink text-white flex items-center justify-center shadow-lg shadow-stone-900/15">
             <BookOpenCheck className="w-5 h-5" />
           </div>
@@ -88,24 +88,24 @@ export function AppSidebar({
             <p className="truncate text-lg font-semibold tracking-tight">{t('appSubtitle')}</p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
             title="打开项目 GitHub"
             aria-label="打开项目 GitHub"
             onClick={() => onOpenExternalUrl(PROJECT_GITHUB_URL)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-stone-900 text-white shadow-sm shadow-stone-900/15 transition-colors hover:bg-stone-700"
           >
-            <Github className="h-4 w-4" />
+            <Github className="h-5 w-5" />
           </button>
           <button
             type="button"
             title="打开 CS 保研 DDL"
             aria-label="打开 CS 保研 DDL"
             onClick={() => onOpenExternalUrl(CSBAOYAN_DDL_URL)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-stone-100"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-stone-900 shadow-sm shadow-stone-900/15 ring-1 ring-stone-900/10 transition-colors hover:bg-stone-700"
           >
-            <img src="/csbaoyan-ddl.svg" alt="" className="h-4 w-4" />
+            <img src="./csbaoyan-ddl.svg" alt="" className="h-5 w-5" />
           </button>
         </div>
       </div>
