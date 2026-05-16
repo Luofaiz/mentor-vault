@@ -36,7 +36,7 @@
 - `latest.json`
 
 其中 `latest.yml` 和 `.blockmap` 由 `electron-builder` 生成，用于增量下载；`MentorVaultSetup.exe` 和 `latest.json` 用于全量下载。
-程序会按新版版本号读取具体 Release 里的 `latest.yml`，例如 `https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.22/latest.yml`。
+程序会按新版版本号读取具体 Release 里的 `latest.yml`，例如 `https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.23/latest.yml`。
 
 把这些文件放到稳定公网地址，例如：
 
@@ -64,6 +64,6 @@ npm run build:desktop:installer
 
 ## 4. 用户侧体验
 
-用户打开程序后会静默检查一次更新；如果有新版，侧边栏会显示“增量下载”和“全量下载”两个按钮。用户选择后，程序才会开始对应下载并在完成后启动安装流程。
+用户打开程序后会静默检查一次更新；如果有新版，侧边栏会显示“增量下载”“全量下载”和“手动下载”三个按钮。用户选择增量或全量后，程序才会开始对应下载并在完成后启动安装流程；选择手动下载会打开 Release 页面。
 
 侧边栏底部也有“检查更新”按钮，可以手动检查。

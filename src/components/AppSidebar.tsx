@@ -43,6 +43,7 @@ interface AppSidebarProps {
   availableUpdate: AvailableUpdateSummary | null;
   onDownloadDifferentialUpdate: () => void;
   onDownloadFullUpdate: () => void;
+  onManualDownloadUpdate: () => void;
   onPauseUpdateDownload: () => void;
   onResumeUpdateDownload: () => void;
   onCancelUpdateDownload: () => void;
@@ -61,6 +62,7 @@ export function AppSidebar({
   availableUpdate,
   onDownloadDifferentialUpdate,
   onDownloadFullUpdate,
+  onManualDownloadUpdate,
   onPauseUpdateDownload,
   onResumeUpdateDownload,
   onCancelUpdateDownload,
@@ -167,7 +169,7 @@ export function AppSidebar({
               <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5 text-stone-400">{availableUpdate.notes}</p>
             )}
             {canChooseUpdateDownload && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-2">
                 {availableUpdate?.canInstallDifferential && (
                   <button
                     type="button"
@@ -188,13 +190,17 @@ export function AppSidebar({
                   >
                     全量下载
                   </button>
-                ) : availableUpdate?.releaseUrl ? (
+                ) : null}
+                {availableUpdate?.releaseUrl ? (
                   <button
                     type="button"
-                    onClick={onDownloadFullUpdate}
-                    className="col-span-2 inline-flex items-center justify-center rounded-xl bg-rose-800 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-rose-900"
+                    onClick={onManualDownloadUpdate}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-700 transition-colors hover:bg-stone-100',
+                      !availableUpdate.canInstallDifferential && !availableUpdate.downloadUrls.length && 'col-span-3',
+                    )}
                   >
-                    打开发布页
+                    手动下载
                   </button>
                 ) : null}
               </div>

@@ -1,6 +1,6 @@
 {
-  "version": "0.2.22",
-  "notes": "左侧栏新增项目 GitHub 和 CS 保研 DDL 快捷入口。",
+  "version": "0.2.23",
+  "notes": "更新检查后新增手动下载按钮，可直接打开 GitHub Release 页面。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],

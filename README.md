@@ -72,7 +72,7 @@ https://github.com/Luofaiz/mentor-vault/releases/latest/download/latest.json
 增量更新元数据会从具体版本的 Release 读取，例如：
 
 ```text
-https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.22/latest.yml
+https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.23/latest.yml
 ```
 
 发布新版本时需要：
@@ -94,7 +94,7 @@ https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.22/latest.yml
 }
 ```
 
-程序检查到新版本后会显示“增量下载”和“全量下载”两个选择。增量下载读取具体版本 Release 里的 `latest.yml` 和 `.blockmap`，全量下载按 `downloadUrls` 顺序下载完整安装包。
+程序检查到新版本后会显示“增量下载”“全量下载”和“手动下载”三个选择。增量下载读取具体版本 Release 里的 `latest.yml` 和 `.blockmap`，全量下载按 `downloadUrls` 顺序下载完整安装包，手动下载会打开 GitHub Release 页面。
 
 ## 数据位置
 

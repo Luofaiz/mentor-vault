@@ -136,7 +136,7 @@ export default function App() {
       });
       setUpdateMessage(
         downloadUrls.length > 0
-          ? `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。请选择增量下载或全量下载。`
+          ? `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。请选择增量下载、全量下载或手动下载。`
           : `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。没有找到安装包直链，可以打开发布页面手动下载。`,
       );
     } catch (error) {
@@ -226,6 +226,20 @@ export default function App() {
     } finally {
       setIsCheckingUpdates(false);
     }
+  };
+
+  const manualDownloadUpdate = async () => {
+    if (!availableUpdate?.releaseUrl) {
+      return;
+    }
+
+    const desktopApi = getDesktopApi();
+    if (desktopApi) {
+      await desktopApi.system.openExternalUrl(availableUpdate.releaseUrl);
+      return;
+    }
+
+    window.open(availableUpdate.releaseUrl, '_blank', 'noopener,noreferrer');
   };
 
   const pauseUpdateDownload = () => {
@@ -342,6 +356,7 @@ export default function App() {
         availableUpdate={availableUpdate}
         onDownloadDifferentialUpdate={() => void downloadDifferentialUpdate()}
         onDownloadFullUpdate={() => void downloadFullUpdate()}
+        onManualDownloadUpdate={() => void manualDownloadUpdate()}
         onPauseUpdateDownload={pauseUpdateDownload}
         onResumeUpdateDownload={resumeUpdateDownload}
         onCancelUpdateDownload={cancelUpdateDownload}
