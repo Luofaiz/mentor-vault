@@ -25,7 +25,7 @@ const CONTACTED_STATUSES = new Set([
 function formatUpdateErrorMessage(error: unknown) {
   const rawMessage = error instanceof Error ? error.message : String(error ?? '');
   const message = rawMessage
-    .replace(/^Error invoking remote method 'system:(?:check-for-updates|install-update)':\s*/i, '')
+    .replace(/^Error invoking remote method 'system:(?:check-for-updates|install-update|install-differential-update)':\s*/i, '')
     .trim();
   const lowerMessage = message.toLowerCase();
 
@@ -62,6 +62,15 @@ function formatUpdateErrorMessage(error: unknown) {
   }
 
   return message ? `检查更新失败：${message}` : '检查更新失败：未知错误。';
+}
+
+function shouldFallbackToFullUpdate(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+  const message = rawMessage
+    .replace(/^Error invoking remote method 'system:install-differential-update':\s*/i, '')
+    .toLowerCase();
+
+  return !/取消|cancel/.test(message);
 }
 
 export default function App() {
@@ -109,15 +118,28 @@ export default function App() {
         return;
       }
 
-      const targetUrl = result.downloadUrl || result.releaseUrl;
-      const message = result.downloadUrl
+      const downloadUrls = result.downloadUrls?.length ? result.downloadUrls : result.downloadUrl ? [result.downloadUrl] : [];
+      const targetUrl = downloadUrls[0] || result.releaseUrl;
+      const message = downloadUrls.length > 0
         ? `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。${result.notes ? `\n\n${result.notes}` : ''}\n\n是否下载并启动新版安装程序？当前程序会在安装程序启动后退出。`
         : `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。${result.notes ? `\n\n${result.notes}` : ''}\n\n没有找到安装包直链，是否打开发布页面？`;
       const shouldOpen = window.confirm(message);
       setUpdateMessage(`发现新版本 ${result.latestVersion}`);
-      if (shouldOpen && result.downloadUrl) {
-        setUpdateMessage('正在下载新版安装程序。下载完成后会启动安装程序并关闭当前程序。');
-        await desktopApi.system.installUpdate(result.downloadUrl);
+      if (shouldOpen && downloadUrls.length > 0) {
+        if (desktopApi.system.installDifferentialUpdate) {
+          try {
+            setUpdateMessage('正在尝试增量更新。若增量更新不可用，会自动改用完整安装包。');
+            await desktopApi.system.installDifferentialUpdate(result.latestVersion);
+            return;
+          } catch (error) {
+            if (!shouldFallbackToFullUpdate(error)) {
+              throw error;
+            }
+            console.warn('Differential update failed, falling back to full installer.', error);
+          }
+        }
+        setUpdateMessage('增量更新不可用，正在下载完整新版安装程序。下载完成后会启动安装程序并关闭当前程序。');
+        await desktopApi.system.installUpdate(downloadUrls);
       } else if (shouldOpen && targetUrl) {
         await desktopApi.system.openExternalUrl(targetUrl);
       }

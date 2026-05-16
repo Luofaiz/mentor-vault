@@ -49,6 +49,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const { t } = useI18n();
   const isUpdateDownloadPaused = updateDownloadProgress?.status === 'paused';
+  const isDifferentialUpdate = updateDownloadProgress?.mode === 'differential';
   const progressPercent = updateDownloadProgress?.percent ?? null;
   const progressLabel = isUpdateDownloadPaused ? '已暂停' : progressPercent === null ? '正在下载' : `${progressPercent}%`;
   const progressWidth = progressPercent === null ? 100 : Math.max(0, Math.min(100, progressPercent));
@@ -140,15 +141,17 @@ export function AppSidebar({
                   <span>剩余 {formatDuration(updateDownloadProgress.remainingSeconds)}</span>
                 </div>
                 {updateDownloadProgress.status !== 'completed' && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={isUpdateDownloadPaused ? onResumeUpdateDownload : onPauseUpdateDownload}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-600 transition-colors hover:bg-stone-100"
-                    >
-                      {isUpdateDownloadPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                      <span>{isUpdateDownloadPaused ? '继续' : '暂停'}</span>
-                    </button>
+                  <div className={cn('grid gap-2 pt-1', isDifferentialUpdate ? 'grid-cols-1' : 'grid-cols-2')}>
+                    {!isDifferentialUpdate && (
+                      <button
+                        type="button"
+                        onClick={isUpdateDownloadPaused ? onResumeUpdateDownload : onPauseUpdateDownload}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-600 transition-colors hover:bg-stone-100"
+                      >
+                        {isUpdateDownloadPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                        <span>{isUpdateDownloadPaused ? '继续' : '暂停'}</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={onCancelUpdateDownload}

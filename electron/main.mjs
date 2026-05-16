@@ -6,8 +6,11 @@ import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import crypto from 'node:crypto';
+import electronUpdater from 'electron-updater';
+import { CancellationToken } from 'builder-util-runtime';
 import nodemailer from 'nodemailer';
 
+const { autoUpdater } = electronUpdater;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORE_VERSION = 9;
@@ -26,7 +29,10 @@ const UPDATE_CHECK_TIMEOUT_MS = 30000;
 const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
 const UPDATE_INSTALLER_FILE_NAME = 'MentorVaultSetup.exe';
 const UPDATE_DOWNLOAD_PROGRESS_CHANNEL = 'system:update-download-progress';
+const AUTO_UPDATE_LATEST_BASE_URL = 'https://github.com/Luofaiz/mentor-vault/releases/latest/download/';
+const AUTO_UPDATE_VERSION_BASE_URL_PREFIX = 'https://github.com/Luofaiz/mentor-vault/releases/download/';
 let currentUpdateDownloadTask = null;
+let currentDifferentialUpdateCancellationToken = null;
 
 const DEFAULT_PROFESSORS = [];
 
@@ -195,9 +201,15 @@ function normalizeUpdateManifest(manifest) {
     releaseAssets.find((asset) => asset?.name === 'MentorVaultPortable.zip') ??
     releaseAssets.find((asset) => String(asset?.name ?? '').toLowerCase().endsWith('.zip')) ??
     null;
-  const downloadUrl = String(
-    manifest?.downloadUrl ?? releaseAsset?.browser_download_url ?? '',
-  ).trim();
+  const downloadUrlCandidates = [
+    ...(Array.isArray(manifest?.downloadUrls) ? manifest.downloadUrls : []),
+    manifest?.downloadUrl,
+    releaseAsset?.browser_download_url,
+  ];
+  const downloadUrls = Array.from(
+    new Set(downloadUrlCandidates.map((url) => String(url ?? '').trim()).filter(Boolean)),
+  );
+  const downloadUrl = downloadUrls[0] ?? '';
   const notes = String(manifest?.notes ?? manifest?.body ?? '').trim();
   const releaseUrl = String(manifest?.releaseUrl ?? manifest?.html_url ?? '').trim();
 
@@ -205,8 +217,8 @@ function normalizeUpdateManifest(manifest) {
     throw new Error('Update manifest is missing "version".');
   }
 
-  if (downloadUrl) {
-    const parsed = new URL(downloadUrl);
+  for (const url of downloadUrls) {
+    const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       throw new Error('Update download URL must use http or https.');
     }
@@ -215,6 +227,7 @@ function normalizeUpdateManifest(manifest) {
   return {
     latestVersion,
     downloadUrl,
+    downloadUrls,
     releaseUrl,
     notes,
   };
@@ -241,6 +254,7 @@ async function checkForUpdates() {
     latestVersion: manifest.latestVersion,
     updateAvailable,
     downloadUrl: manifest.downloadUrl,
+    downloadUrls: manifest.downloadUrls,
     releaseUrl: manifest.releaseUrl,
     notes: manifest.notes,
   };
@@ -261,6 +275,121 @@ function sendUpdateDownloadProgress(webContents, progress) {
   }
 
   webContents.send(UPDATE_DOWNLOAD_PROGRESS_CHANNEL, progress);
+}
+
+function getDifferentialUpdateBaseUrl(latestVersion) {
+  const version = String(latestVersion ?? '').trim().replace(/^v(?=\d)/i, '');
+  if (!version) {
+    return AUTO_UPDATE_LATEST_BASE_URL;
+  }
+
+  return `${AUTO_UPDATE_VERSION_BASE_URL_PREFIX}v${version}/`;
+}
+
+function configureDifferentialUpdater(webContents, latestVersion) {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.disableWebInstaller = true;
+  autoUpdater.disableDifferentialDownload = false;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.logger = {
+    info: (...args) => console.log('[autoUpdater]', ...args),
+    warn: (...args) => console.warn('[autoUpdater]', ...args),
+    error: (...args) => console.error('[autoUpdater]', ...args),
+  };
+  autoUpdater.setFeedURL({
+    provider: 'generic',
+    url: getDifferentialUpdateBaseUrl(latestVersion),
+    useMultipleRangeRequest: false,
+  });
+
+  if (!autoUpdater.__mentorVaultProgressBridgeAttached) {
+    autoUpdater.on('error', (error) => {
+      console.error('[autoUpdater]', error);
+    });
+    autoUpdater.on('download-progress', (progress) => {
+      const bytesPerSecond = Number(progress?.bytesPerSecond ?? 0);
+      const transferredBytes = Number(progress?.transferred ?? 0);
+      const totalBytes = Number(progress?.total ?? 0);
+      const remainingBytes =
+        Number.isFinite(totalBytes) && totalBytes > 0 ? Math.max(totalBytes - transferredBytes, 0) : undefined;
+      sendUpdateDownloadProgress(webContents, {
+        mode: 'differential',
+        status: 'downloading',
+        transferredBytes,
+        totalBytes: Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : undefined,
+        bytesPerSecond: Number.isFinite(bytesPerSecond) ? bytesPerSecond : 0,
+        remainingSeconds:
+          remainingBytes === undefined || !Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0
+            ? undefined
+            : remainingBytes / bytesPerSecond,
+        percent:
+          typeof progress?.percent === 'number'
+            ? Math.max(0, Math.min(100, Math.round(progress.percent)))
+            : undefined,
+      });
+    });
+    autoUpdater.__mentorVaultProgressBridgeAttached = true;
+  }
+}
+
+async function installDifferentialUpdate(webContents, latestVersion) {
+  if (process.platform !== 'win32') {
+    throw new Error('当前增量更新只支持 Windows。');
+  }
+
+  if (!app.isPackaged) {
+    throw new Error('开发模式不能执行增量更新，请打包安装后再测试。');
+  }
+
+  if (currentDifferentialUpdateCancellationToken) {
+    throw new Error('已有增量更新正在下载。');
+  }
+
+  configureDifferentialUpdater(webContents, latestVersion);
+  const cancellationToken = new CancellationToken();
+  currentDifferentialUpdateCancellationToken = cancellationToken;
+
+  try {
+    const checkResult = await autoUpdater.checkForUpdates();
+    if (!checkResult?.isUpdateAvailable) {
+      throw new Error('没有可用的增量更新。');
+    }
+
+    sendUpdateDownloadProgress(webContents, {
+      mode: 'differential',
+      status: 'downloading',
+      transferredBytes: 0,
+      totalBytes: undefined,
+      bytesPerSecond: 0,
+      remainingSeconds: undefined,
+      percent: undefined,
+    });
+
+    await autoUpdater.downloadUpdate(cancellationToken);
+    sendUpdateDownloadProgress(webContents, {
+      mode: 'differential',
+      status: 'completed',
+      transferredBytes: 1,
+      totalBytes: 1,
+      bytesPerSecond: 0,
+      remainingSeconds: 0,
+      percent: 100,
+    });
+
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(false, true);
+    }, 500);
+    return { ok: true, mode: 'differential' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (/cancel/i.test(message) || cancellationToken.cancelled) {
+      throw new Error('增量更新下载已取消。');
+    }
+    throw error;
+  } finally {
+    currentDifferentialUpdateCancellationToken = null;
+  }
 }
 
 function createUpdateDownloadTask(controller, installerPath) {
@@ -292,6 +421,10 @@ function resumeUpdateDownloadTask(task) {
 }
 
 function pauseCurrentUpdateDownload() {
+  if (currentDifferentialUpdateCancellationToken) {
+    return { ok: false, reason: '增量更新暂不支持暂停。' };
+  }
+
   if (!currentUpdateDownloadTask || currentUpdateDownloadTask.isCanceled) {
     return { ok: false };
   }
@@ -301,6 +434,10 @@ function pauseCurrentUpdateDownload() {
 }
 
 function resumeCurrentUpdateDownload() {
+  if (currentDifferentialUpdateCancellationToken) {
+    return { ok: false, reason: '增量更新暂不支持暂停。' };
+  }
+
   if (!currentUpdateDownloadTask || currentUpdateDownloadTask.isCanceled) {
     return { ok: false };
   }
@@ -310,6 +447,12 @@ function resumeCurrentUpdateDownload() {
 }
 
 function cancelCurrentUpdateDownload() {
+  if (currentDifferentialUpdateCancellationToken) {
+    currentDifferentialUpdateCancellationToken.cancel();
+    currentDifferentialUpdateCancellationToken = null;
+    return { ok: true };
+  }
+
   if (!currentUpdateDownloadTask) {
     return { ok: false };
   }
@@ -410,6 +553,11 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress, task) {
   });
 }
 
+function normalizeDownloadUrls(input) {
+  const values = Array.isArray(input) ? input : [input];
+  return Array.from(new Set(values.map((url) => String(url ?? '').trim()).filter(Boolean)));
+}
+
 async function downloadUpdateInstaller(downloadUrl, webContents) {
   const parsed = new URL(String(downloadUrl ?? '').trim());
   if (!['http:', 'https:'].includes(parsed.protocol)) {
@@ -504,7 +652,30 @@ async function installUpdate(downloadUrl, webContents) {
     throw new Error('当前自动安装更新只支持 Windows。');
   }
 
-  const installerPath = await downloadUpdateInstaller(downloadUrl, webContents);
+  const downloadUrls = normalizeDownloadUrls(downloadUrl);
+  if (downloadUrls.length === 0) {
+    throw new Error('没有可用的更新安装包下载地址。');
+  }
+
+  let installerPath = '';
+  let lastError = null;
+  for (let index = 0; index < downloadUrls.length; index += 1) {
+    try {
+      installerPath = await downloadUpdateInstaller(downloadUrls[index], webContents);
+      break;
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      if (/取消|canceled|cancelled/i.test(message) || index === downloadUrls.length - 1) {
+        throw error;
+      }
+    }
+  }
+
+  if (!installerPath) {
+    throw lastError ?? new Error('更新安装包下载失败。');
+  }
+
   const openError = await shell.openPath(installerPath);
   if (openError) {
     throw new Error(`启动安装程序失败：${openError}`);
@@ -1378,6 +1549,10 @@ ipcMain.handle('system:open-external-url', async (_event, url) => {
 });
 
 ipcMain.handle('system:install-update', async (event, downloadUrl) => installUpdate(downloadUrl, event.sender));
+
+ipcMain.handle('system:install-differential-update', async (event, latestVersion) =>
+  installDifferentialUpdate(event.sender, latestVersion),
+);
 
 ipcMain.handle('system:pause-update-download', async () => pauseCurrentUpdateDownload());
 

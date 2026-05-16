@@ -1,6 +1,6 @@
 {
-  "version": "0.2.19",
-  "notes": "笔记索引、院校索引和学院索引支持手动拖拽调整顺序，并会保存本地顺序偏好。",
+  "version": "0.2.20",
+  "notes": "新增增量更新：程序会优先使用差分下载更新，失败时自动回退到完整安装包。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }

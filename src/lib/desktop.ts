@@ -30,11 +30,13 @@ export interface VibeDesktopApi {
       latestVersion?: string;
       updateAvailable: boolean;
       downloadUrl?: string;
+      downloadUrls?: string[];
       releaseUrl?: string;
       notes?: string;
     }>;
     openExternalUrl: (url: string) => Promise<void>;
-    installUpdate: (downloadUrl: string) => Promise<{ ok: true }>;
+    installUpdate: (downloadUrl: string | string[]) => Promise<{ ok: true }>;
+    installDifferentialUpdate?: (latestVersion?: string) => Promise<{ ok: true; mode: 'differential' }>;
     pauseUpdateDownload?: () => Promise<{ ok: boolean }>;
     resumeUpdateDownload?: () => Promise<{ ok: boolean }>;
     cancelUpdateDownload?: () => Promise<{ ok: boolean }>;
@@ -96,6 +98,7 @@ export interface VibeDesktopApi {
 }
 
 export interface UpdateDownloadProgress {
+  mode?: 'differential' | 'full';
   status: 'downloading' | 'paused' | 'completed';
   transferredBytes: number;
   totalBytes?: number;
