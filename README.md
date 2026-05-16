@@ -2,6 +2,8 @@
 
 Mentor Vault 是一个本地桌面端导师汇总工具，用来像表格一样记录导师、学校、研究方向、联系状态和套磁进展。
 
+![Mentor Vault 主界面](docs/mentor-vault-screenshot.png)
+
 ## 主要功能
 
 - 老师信息管理：姓名、学校、职称、邮箱、主页、研究方向、状态、标签和备注。
