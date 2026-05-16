@@ -2,6 +2,7 @@ import {
   BookOpenCheck,
   Building2,
   FileText,
+  Github,
   Pause,
   Play,
   RefreshCw,
@@ -14,6 +15,9 @@ import { cn } from '../lib/utils';
 import type { UpdateDownloadProgress } from '../lib/desktop';
 
 type View = 'contacts' | 'schools' | 'notes' | 'trash';
+
+const PROJECT_GITHUB_URL = 'https://github.com/Luofaiz/mentor-vault';
+const CSBAOYAN_DDL_URL = 'https://ddl.csbaoyan.top/';
 
 interface AvailableUpdateSummary {
   notes?: string;
@@ -42,6 +46,7 @@ interface AppSidebarProps {
   onPauseUpdateDownload: () => void;
   onResumeUpdateDownload: () => void;
   onCancelUpdateDownload: () => void;
+  onOpenExternalUrl: (url: string) => void;
 }
 
 export function AppSidebar({
@@ -59,6 +64,7 @@ export function AppSidebar({
   onPauseUpdateDownload,
   onResumeUpdateDownload,
   onCancelUpdateDownload,
+  onOpenExternalUrl,
 }: AppSidebarProps) {
   const { t } = useI18n();
   const isUpdateDownloadPaused = updateDownloadProgress?.status === 'paused';
@@ -70,13 +76,35 @@ export function AppSidebar({
 
   return (
     <aside className="h-screen w-72 shrink-0 overflow-hidden border-r border-stone-200 bg-white/70 flex flex-col p-5 space-y-6 backdrop-blur-md">
-      <div className="flex items-center space-x-3 px-2">
-        <div className="w-10 h-10 rounded-2xl bg-ink text-white flex items-center justify-center shadow-lg shadow-stone-900/15">
-          <BookOpenCheck className="w-5 h-5" />
+      <div className="flex items-center justify-between gap-3 px-2">
+        <div className="flex min-w-0 items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-ink text-white flex items-center justify-center shadow-lg shadow-stone-900/15">
+            <BookOpenCheck className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('appName')}</p>
+            <p className="truncate text-lg font-semibold tracking-tight">{t('appSubtitle')}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{t('appName')}</p>
-          <p className="text-lg font-semibold tracking-tight">{t('appSubtitle')}</p>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            title="打开项目 GitHub"
+            aria-label="打开项目 GitHub"
+            onClick={() => onOpenExternalUrl(PROJECT_GITHUB_URL)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+          >
+            <Github className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="打开 CS 保研 DDL"
+            aria-label="打开 CS 保研 DDL"
+            onClick={() => onOpenExternalUrl(CSBAOYAN_DDL_URL)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-stone-100"
+          >
+            <img src="/csbaoyan-ddl.svg" alt="" className="h-4 w-4" />
+          </button>
         </div>
       </div>
       <nav className="space-y-1">

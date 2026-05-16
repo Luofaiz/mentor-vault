@@ -1,6 +1,6 @@
 {
-  "version": "0.2.21",
-  "notes": "更新检查后可手动选择增量下载或全量下载。",
+  "version": "0.2.22",
+  "notes": "左侧栏新增项目 GitHub 和 CS 保研 DDL 快捷入口。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],

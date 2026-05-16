@@ -265,6 +265,16 @@ export default function App() {
     void desktopApi?.system.cancelUpdateDownload?.();
   };
 
+  const openExternalUrl = (url: string) => {
+    const desktopApi = getDesktopApi();
+    if (desktopApi) {
+      void desktopApi.system.openExternalUrl(url);
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleCreateProfessor = async (draft: ProfessorDraft) => {
     await professorDirectory.create(draft);
   };
@@ -335,6 +345,7 @@ export default function App() {
         onPauseUpdateDownload={pauseUpdateDownload}
         onResumeUpdateDownload={resumeUpdateDownload}
         onCancelUpdateDownload={cancelUpdateDownload}
+        onOpenExternalUrl={openExternalUrl}
       />
 
       <main className="min-w-0 flex-1 flex flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(177,95,47,0.08),_transparent_28%),linear-gradient(180deg,#fcfbf8_0%,#f7f4ef_100%)]">
