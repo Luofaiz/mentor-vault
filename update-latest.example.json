@@ -1,6 +1,6 @@
 {
-  "version": "0.2.23",
-  "notes": "更新检查后新增手动下载按钮，可直接打开 GitHub Release 页面。",
+  "version": "0.2.24",
+  "notes": "优化安装包体积，移除未使用语言包和部分冗余运行时文件。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],
