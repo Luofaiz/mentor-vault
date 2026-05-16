@@ -169,36 +169,35 @@ export function AppSidebar({
               <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5 text-stone-400">{availableUpdate.notes}</p>
             )}
             {canChooseUpdateDownload && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {availableUpdate?.canInstallDifferential && (
-                  <button
-                    type="button"
-                    onClick={onDownloadDifferentialUpdate}
-                    className="inline-flex items-center justify-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-700 transition-colors hover:bg-stone-100"
-                  >
-                    增量下载
-                  </button>
-                )}
-                {availableUpdate?.downloadUrls.length ? (
-                  <button
-                    type="button"
-                    onClick={onDownloadFullUpdate}
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-xl bg-rose-800 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-rose-900',
-                      !availableUpdate.canInstallDifferential && 'col-span-2',
-                    )}
-                  >
-                    全量下载
-                  </button>
-                ) : null}
+              <div className="mt-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {availableUpdate?.canInstallDifferential && (
+                    <button
+                      type="button"
+                      onClick={onDownloadDifferentialUpdate}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-medium leading-none text-stone-700 transition-colors hover:bg-stone-100"
+                    >
+                      增量下载
+                    </button>
+                  )}
+                  {availableUpdate?.downloadUrls.length ? (
+                    <button
+                      type="button"
+                      onClick={onDownloadFullUpdate}
+                      className={cn(
+                        'inline-flex h-9 items-center justify-center rounded-xl bg-rose-800 px-3 text-xs font-semibold leading-none text-white shadow-sm shadow-rose-900/10 transition-colors hover:bg-rose-900',
+                        !availableUpdate.canInstallDifferential && 'col-span-2',
+                      )}
+                    >
+                      全量下载
+                    </button>
+                  ) : null}
+                </div>
                 {availableUpdate?.releaseUrl ? (
                   <button
                     type="button"
                     onClick={onManualDownloadUpdate}
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-700 transition-colors hover:bg-stone-100',
-                      !availableUpdate.canInstallDifferential && !availableUpdate.downloadUrls.length && 'col-span-3',
-                    )}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-medium leading-none text-stone-700 transition-colors hover:bg-stone-100"
                   >
                     手动下载
                   </button>

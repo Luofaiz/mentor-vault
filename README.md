@@ -73,7 +73,7 @@ https://github.com/Luofaiz/mentor-vault/releases/latest/download/latest.json
 增量更新元数据会从具体版本的 Release 读取，例如：
 
 ```text
-https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.26/latest.yml
+https://github.com/Luofaiz/mentor-vault/releases/download/v0.2.27/latest.yml
 ```
 
 发布新版本时需要：

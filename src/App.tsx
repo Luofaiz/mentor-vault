@@ -74,6 +74,13 @@ function formatUpdateErrorMessage(error: unknown, prefix = '检查更新失败')
   return message ? format(message) : format('未知错误。');
 }
 
+function formatUpdateNotes(notes?: string) {
+  return String(notes ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*\s]+/, '').trim())
+    .find(Boolean);
+}
+
 export default function App() {
   const [view, setView] = useState<View>('contacts');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
@@ -129,7 +136,7 @@ export default function App() {
       setAvailableUpdate({
         currentVersion: result.currentVersion,
         latestVersion: result.latestVersion,
-        notes: result.notes,
+        notes: formatUpdateNotes(result.notes),
         downloadUrls,
         releaseUrl: result.releaseUrl,
         canInstallDifferential: Boolean(desktopApi.system.installDifferentialUpdate),

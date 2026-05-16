@@ -1,6 +1,6 @@
 {
-  "version": "0.2.26",
-  "notes": "优化侧栏外链图标布局，修复 CS 保研 DDL 图标在桌面端不可见的问题。",
+  "version": "0.2.27",
+  "notes": "优化侧栏外链图标体验。",
   "downloadUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe",
   "releaseUrl": "https://github.com/Luofaiz/mentor-vault/releases/latest"
 }
