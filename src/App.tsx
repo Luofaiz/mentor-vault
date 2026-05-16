@@ -11,6 +11,15 @@ import type { TimelineEventDraft } from './types/timeline';
 
 type View = 'contacts' | 'schools' | 'notes' | 'trash';
 
+interface AvailableUpdate {
+  currentVersion: string;
+  latestVersion: string;
+  notes?: string;
+  downloadUrls: string[];
+  releaseUrl?: string;
+  canInstallDifferential: boolean;
+}
+
 const CONTACTED_STATUSES = new Set([
   'Contacted',
   'Follow-Up Due',
@@ -22,60 +31,53 @@ const CONTACTED_STATUSES = new Set([
   '待考核',
 ]);
 
-function formatUpdateErrorMessage(error: unknown) {
+function formatUpdateErrorMessage(error: unknown, prefix = '检查更新失败') {
   const rawMessage = error instanceof Error ? error.message : String(error ?? '');
   const message = rawMessage
     .replace(/^Error invoking remote method 'system:(?:check-for-updates|install-update|install-differential-update)':\s*/i, '')
     .trim();
   const lowerMessage = message.toLowerCase();
+  const format = (reason: string) => `${prefix}：${reason}`;
 
   if (/aborterror|aborted|timeout|timed out|超时/.test(lowerMessage)) {
-    return '检查更新失败：更新地址访问超时。可能是当前网络访问 GitHub 或 CDN 较慢，请稍后重试，或直接打开 GitHub Release 下载新版。';
+    return format('更新地址访问超时。可能是当前网络访问 GitHub 或 CDN 较慢，请稍后重试，或直接打开 GitHub Release 下载新版。');
   }
 
   if (/failed to fetch|fetch failed|network|dns|enotfound|econnreset|econnrefused|etimedout|eai_again|socket/.test(lowerMessage)) {
-    return '检查更新失败：网络连接失败。请检查网络、代理，或确认 GitHub/CDN 当前可以访问。';
+    return format('网络连接失败。请检查网络、代理，或确认 GitHub/CDN 当前可以访问。');
   }
 
   if (/404|not found/.test(lowerMessage)) {
-    return '检查更新失败：更新文件没有找到。可能是 latest.json 还没有发布，或 CDN 缓存还没有刷新。';
+    return format('更新文件没有找到。可能是 latest.json 还没有发布，或 CDN 缓存还没有刷新。');
   }
 
   if (/401|unauthorized/.test(lowerMessage)) {
-    return '检查更新失败：更新地址需要授权访问。请确认 Release 仓库和下载文件是公开的。';
+    return format('更新地址需要授权访问。请确认 Release 仓库和下载文件是公开的。');
   }
 
   if (/403|forbidden|rate limit|rate exceeded/.test(lowerMessage)) {
-    return '检查更新失败：GitHub 暂时拒绝访问或触发访问频率限制，请稍后再试。';
+    return format('GitHub 暂时拒绝访问或触发访问频率限制，请稍后再试。');
   }
 
   if (/5\d{2}|bad gateway|service unavailable|gateway timeout/.test(lowerMessage)) {
-    return '检查更新失败：更新服务器暂时不可用，请稍后重试。';
+    return format('更新服务器暂时不可用，请稍后重试。');
   }
 
   if (/json|manifest|version|unexpected token/.test(lowerMessage)) {
-    return '检查更新失败：更新配置文件格式不正确。请检查 latest.json 里的版本号和下载链接。';
+    return format('更新配置文件格式不正确。请检查 latest.json 里的版本号和下载链接。');
   }
 
   if (/url|protocol/.test(lowerMessage)) {
-    return '检查更新失败：更新地址格式不正确。请检查 UPDATE_MANIFEST_URL 或 latest.json 的下载链接。';
+    return format('更新地址格式不正确。请检查 UPDATE_MANIFEST_URL 或 latest.json 的下载链接。');
   }
 
-  return message ? `检查更新失败：${message}` : '检查更新失败：未知错误。';
-}
-
-function shouldFallbackToFullUpdate(error: unknown) {
-  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
-  const message = rawMessage
-    .replace(/^Error invoking remote method 'system:install-differential-update':\s*/i, '')
-    .toLowerCase();
-
-  return !/取消|cancel/.test(message);
+  return message ? format(message) : format('未知错误。');
 }
 
 export default function App() {
   const [view, setView] = useState<View>('contacts');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [availableUpdate, setAvailableUpdate] = useState<AvailableUpdate | null>(null);
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState<UpdateDownloadProgress | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const isCancelingUpdateDownloadRef = useRef(false);
@@ -101,6 +103,7 @@ export default function App() {
     setIsCheckingUpdates(true);
     isCancelingUpdateDownloadRef.current = false;
     setUpdateDownloadProgress(null);
+    setAvailableUpdate(null);
     try {
       const result = await desktopApi.system.checkForUpdates();
 
@@ -119,30 +122,23 @@ export default function App() {
       }
 
       const downloadUrls = result.downloadUrls?.length ? result.downloadUrls : result.downloadUrl ? [result.downloadUrl] : [];
-      const targetUrl = downloadUrls[0] || result.releaseUrl;
-      const message = downloadUrls.length > 0
-        ? `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。${result.notes ? `\n\n${result.notes}` : ''}\n\n是否下载并启动新版安装程序？当前程序会在安装程序启动后退出。`
-        : `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。${result.notes ? `\n\n${result.notes}` : ''}\n\n没有找到安装包直链，是否打开发布页面？`;
-      const shouldOpen = window.confirm(message);
-      setUpdateMessage(`发现新版本 ${result.latestVersion}`);
-      if (shouldOpen && downloadUrls.length > 0) {
-        if (desktopApi.system.installDifferentialUpdate) {
-          try {
-            setUpdateMessage('正在尝试增量更新。若增量更新不可用，会自动改用完整安装包。');
-            await desktopApi.system.installDifferentialUpdate(result.latestVersion);
-            return;
-          } catch (error) {
-            if (!shouldFallbackToFullUpdate(error)) {
-              throw error;
-            }
-            console.warn('Differential update failed, falling back to full installer.', error);
-          }
-        }
-        setUpdateMessage('增量更新不可用，正在下载完整新版安装程序。下载完成后会启动安装程序并关闭当前程序。');
-        await desktopApi.system.installUpdate(downloadUrls);
-      } else if (shouldOpen && targetUrl) {
-        await desktopApi.system.openExternalUrl(targetUrl);
+      if (!result.latestVersion) {
+        throw new Error('更新配置文件缺少最新版本号。');
       }
+
+      setAvailableUpdate({
+        currentVersion: result.currentVersion,
+        latestVersion: result.latestVersion,
+        notes: result.notes,
+        downloadUrls,
+        releaseUrl: result.releaseUrl,
+        canInstallDifferential: Boolean(desktopApi.system.installDifferentialUpdate),
+      });
+      setUpdateMessage(
+        downloadUrls.length > 0
+          ? `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。请选择增量下载或全量下载。`
+          : `发现新版本 ${result.latestVersion}，当前版本 ${result.currentVersion}。没有找到安装包直链，可以打开发布页面手动下载。`,
+      );
     } catch (error) {
       setUpdateDownloadProgress(null);
       if (isCancelingUpdateDownloadRef.current) {
@@ -167,6 +163,70 @@ export default function App() {
       setUpdateDownloadProgress(progress);
     });
   }, []);
+
+  const downloadDifferentialUpdate = async () => {
+    if (!availableUpdate) {
+      return;
+    }
+
+    const desktopApi = getDesktopApi();
+    if (!desktopApi?.system.installDifferentialUpdate) {
+      setUpdateMessage('当前版本暂不支持增量下载，请使用全量下载。');
+      return;
+    }
+
+    isCancelingUpdateDownloadRef.current = false;
+    setIsCheckingUpdates(true);
+    setUpdateDownloadProgress(null);
+    try {
+      setUpdateMessage('正在进行增量下载。下载完成后会安装新版并关闭当前程序。');
+      await desktopApi.system.installDifferentialUpdate(availableUpdate.latestVersion);
+    } catch (error) {
+      setUpdateDownloadProgress(null);
+      if (isCancelingUpdateDownloadRef.current) {
+        setUpdateMessage('已取消更新下载。');
+        return;
+      }
+      setUpdateMessage(formatUpdateErrorMessage(error, '增量下载失败'));
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const downloadFullUpdate = async () => {
+    if (!availableUpdate) {
+      return;
+    }
+
+    const desktopApi = getDesktopApi();
+    if (!desktopApi) {
+      return;
+    }
+
+    if (availableUpdate.downloadUrls.length === 0) {
+      if (availableUpdate.releaseUrl) {
+        await desktopApi.system.openExternalUrl(availableUpdate.releaseUrl);
+      }
+      return;
+    }
+
+    isCancelingUpdateDownloadRef.current = false;
+    setIsCheckingUpdates(true);
+    setUpdateDownloadProgress(null);
+    try {
+      setUpdateMessage('正在下载完整新版安装程序。下载完成后会启动安装程序并关闭当前程序。');
+      await desktopApi.system.installUpdate(availableUpdate.downloadUrls);
+    } catch (error) {
+      setUpdateDownloadProgress(null);
+      if (isCancelingUpdateDownloadRef.current) {
+        setUpdateMessage('已取消更新下载。');
+        return;
+      }
+      setUpdateMessage(formatUpdateErrorMessage(error, '全量下载失败'));
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
 
   const pauseUpdateDownload = () => {
     const desktopApi = getDesktopApi();
@@ -269,6 +329,9 @@ export default function App() {
         updateDownloadProgress={updateDownloadProgress}
         isCheckingUpdates={isCheckingUpdates}
         onCheckUpdates={() => void checkForUpdates(true)}
+        availableUpdate={availableUpdate}
+        onDownloadDifferentialUpdate={() => void downloadDifferentialUpdate()}
+        onDownloadFullUpdate={() => void downloadFullUpdate()}
         onPauseUpdateDownload={pauseUpdateDownload}
         onResumeUpdateDownload={resumeUpdateDownload}
         onCancelUpdateDownload={cancelUpdateDownload}

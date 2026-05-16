@@ -15,6 +15,13 @@ import type { UpdateDownloadProgress } from '../lib/desktop';
 
 type View = 'contacts' | 'schools' | 'notes' | 'trash';
 
+interface AvailableUpdateSummary {
+  notes?: string;
+  downloadUrls: string[];
+  releaseUrl?: string;
+  canInstallDifferential: boolean;
+}
+
 export interface Attachment {
   name: string;
   content: string;
@@ -29,6 +36,9 @@ interface AppSidebarProps {
   updateDownloadProgress: UpdateDownloadProgress | null;
   isCheckingUpdates: boolean;
   onCheckUpdates: () => void;
+  availableUpdate: AvailableUpdateSummary | null;
+  onDownloadDifferentialUpdate: () => void;
+  onDownloadFullUpdate: () => void;
   onPauseUpdateDownload: () => void;
   onResumeUpdateDownload: () => void;
   onCancelUpdateDownload: () => void;
@@ -43,6 +53,9 @@ export function AppSidebar({
   updateDownloadProgress,
   isCheckingUpdates,
   onCheckUpdates,
+  availableUpdate,
+  onDownloadDifferentialUpdate,
+  onDownloadFullUpdate,
   onPauseUpdateDownload,
   onResumeUpdateDownload,
   onCancelUpdateDownload,
@@ -53,6 +66,7 @@ export function AppSidebar({
   const progressPercent = updateDownloadProgress?.percent ?? null;
   const progressLabel = isUpdateDownloadPaused ? '已暂停' : progressPercent === null ? '正在下载' : `${progressPercent}%`;
   const progressWidth = progressPercent === null ? 100 : Math.max(0, Math.min(100, progressPercent));
+  const canChooseUpdateDownload = Boolean(availableUpdate && !updateDownloadProgress && !isCheckingUpdates);
 
   return (
     <aside className="h-screen w-72 shrink-0 overflow-hidden border-r border-stone-200 bg-white/70 flex flex-col p-5 space-y-6 backdrop-blur-md">
@@ -121,6 +135,42 @@ export function AppSidebar({
         {updateMessage && (
           <div className="rounded-2xl bg-stone-50 px-4 py-3 text-xs leading-5 text-stone-500">
             <p>{updateMessage}</p>
+            {availableUpdate?.notes && !updateDownloadProgress && (
+              <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5 text-stone-400">{availableUpdate.notes}</p>
+            )}
+            {canChooseUpdateDownload && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {availableUpdate?.canInstallDifferential && (
+                  <button
+                    type="button"
+                    onClick={onDownloadDifferentialUpdate}
+                    className="inline-flex items-center justify-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-[11px] font-medium text-stone-700 transition-colors hover:bg-stone-100"
+                  >
+                    增量下载
+                  </button>
+                )}
+                {availableUpdate?.downloadUrls.length ? (
+                  <button
+                    type="button"
+                    onClick={onDownloadFullUpdate}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-xl bg-rose-800 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-rose-900',
+                      !availableUpdate.canInstallDifferential && 'col-span-2',
+                    )}
+                  >
+                    全量下载
+                  </button>
+                ) : availableUpdate?.releaseUrl ? (
+                  <button
+                    type="button"
+                    onClick={onDownloadFullUpdate}
+                    className="col-span-2 inline-flex items-center justify-center rounded-xl bg-rose-800 px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:bg-rose-900"
+                  >
+                    打开发布页
+                  </button>
+                ) : null}
+              </div>
+            )}
             {updateDownloadProgress && (
               <div className="mt-3 space-y-2">
                 <div className="h-2 overflow-hidden rounded-full bg-stone-200">

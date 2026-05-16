@@ -490,6 +490,7 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress, task) {
 
     lastSentAt = now;
     notifyProgress({
+      mode: 'full',
       status: task.isPaused ? 'paused' : 'downloading',
       transferredBytes,
       totalBytes,
@@ -500,6 +501,7 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress, task) {
   };
 
   notifyProgress({
+    mode: 'full',
     status: 'downloading',
     transferredBytes: 0,
     totalBytes,
@@ -519,6 +521,7 @@ function createUpdateDownloadProgressStream(totalBytes, notifyProgress, task) {
         if (task.isPaused) {
           pausedStartedAt = Date.now();
           notifyProgress({
+            mode: 'full',
             status: 'paused',
             transferredBytes,
             totalBytes,
@@ -599,6 +602,7 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
     } else {
       const buffer = Buffer.from(await response.arrayBuffer());
       notifyProgress({
+        mode: 'full',
         status: 'downloading',
         transferredBytes: 0,
         totalBytes: buffer.length,
@@ -610,6 +614,7 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
       task.transferredBytes = buffer.length;
       task.totalBytes = buffer.length;
       notifyProgress({
+        mode: 'full',
         status: 'completed',
         transferredBytes: buffer.length,
         totalBytes: buffer.length,
@@ -620,6 +625,7 @@ async function downloadUpdateInstaller(downloadUrl, webContents) {
     }
 
     notifyProgress({
+      mode: 'full',
       status: 'completed',
       transferredBytes: task.transferredBytes || totalBytes || 0,
       totalBytes,

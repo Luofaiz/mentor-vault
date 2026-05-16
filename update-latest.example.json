@@ -1,6 +1,6 @@
 {
-  "version": "0.2.20",
-  "notes": "新增增量更新：程序会优先使用差分下载更新，失败时自动回退到完整安装包。",
+  "version": "0.2.21",
+  "notes": "更新检查后可手动选择增量下载或全量下载。",
   "downloadUrls": [
     "https://github.com/Luofaiz/mentor-vault/releases/latest/download/MentorVaultSetup.exe"
   ],
